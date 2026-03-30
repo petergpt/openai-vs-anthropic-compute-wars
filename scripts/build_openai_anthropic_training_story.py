@@ -644,6 +644,11 @@ def build_story_payload(
     return {
         "title": "OpenAI vs Anthropic Compute Wars",
         "subtitle": "Source: Best-effort estimate from Epoch AI Frontier Data Centers and selected public disclosures.",
+        "credit": {
+            "prefix": "Made by",
+            "name": "Peter Gostev",
+            "url": "https://x.com/petergostev",
+        },
         "legend": {
             "training": "Estimated training start",
             "release": "Release point",
@@ -843,6 +848,33 @@ def html_template(payload: dict[str, object]) -> str:
         pointer-events: none;
         opacity: 0.88;
         white-space: nowrap;
+      }
+
+      .chart-credit {
+        position: absolute;
+        left: 0.92rem;
+        bottom: 0.4rem;
+        z-index: 1;
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.58rem;
+        line-height: 1.16;
+        letter-spacing: 0;
+        text-align: left;
+        opacity: 0.88;
+        white-space: nowrap;
+      }
+
+      .chart-credit a {
+        color: inherit;
+        text-decoration: underline;
+        text-underline-offset: 0.12em;
+        pointer-events: auto;
+      }
+
+      .chart-credit a:hover,
+      .chart-credit a:focus-visible {
+        text-decoration-thickness: 2px;
       }
 
       .legend {
@@ -1832,6 +1864,13 @@ def html_template(payload: dict[str, object]) -> str:
           line-height: 1;
         }
 
+        .chart-credit {
+          left: 0.46rem;
+          bottom: 0.92rem;
+          font-size: 0.34rem;
+          line-height: 1;
+        }
+
         .legend {
           flex-direction: column;
           align-items: flex-end;
@@ -1998,6 +2037,7 @@ def html_template(payload: dict[str, object]) -> str:
         <div class="panel-stack">
           <div class="stage-shell" id="chart-panel">
             <svg id="chart" role="img" aria-label="Animated chart of OpenAI and Anthropic compute buildout with flagship model training windows"></svg>
+            <p class="chart-credit" id="credit"><span id="credit-prefix"></span> <a id="credit-link" href="" target="_blank" rel="noreferrer noopener"></a></p>
             <p class="chart-source" id="subtitle"></p>
           </div>
           <section class="data-shell panel-hidden" id="data-panel" aria-label="Underlying chart data explorer">
@@ -2074,10 +2114,20 @@ def html_template(payload: dict[str, object]) -> str:
 
       document.getElementById("title").textContent = DATA.title;
       const subtitleEl = document.getElementById("subtitle");
+      const creditEl = document.getElementById("credit");
+      const creditPrefixEl = document.getElementById("credit-prefix");
+      const creditLinkEl = document.getElementById("credit-link");
       if (DATA.subtitle) {
         subtitleEl.textContent = DATA.subtitle;
       } else {
         subtitleEl.hidden = true;
+      }
+      if (DATA.credit && DATA.credit.name && DATA.credit.url) {
+        creditPrefixEl.textContent = DATA.credit.prefix || "";
+        creditLinkEl.textContent = DATA.credit.name;
+        creditLinkEl.href = DATA.credit.url;
+      } else {
+        creditEl.hidden = true;
       }
       const DATA_EXPLORER = DATA.data_explorer;
 
