@@ -1,0 +1,63 @@
+anchor_id,evidence_id,relationship,note
+anchor__anthropic__2023,an_01,continuity_proof,Google Cloud partnership shows Anthropic compute access in 2023.
+anchor__anthropic__2023,an_02,continuity_proof,Google TPU v5e usage shows Anthropic already using Google compute.
+anchor__anthropic__2023,an_03,continuity_proof,CMA confirms Anthropic sourced compute from Google and Amazon in 2023.
+anchor__anthropic__2024,an_02,continuity_proof,Google TPU continuity proof.
+anchor__anthropic__2024,an_03,continuity_proof,CMA continuity proof.
+anchor__anthropic__2024,an_04,uplift_support,AWS as primary training partner.
+anchor__anthropic__2024,an_05,uplift_support,Trainium2 >5x current-generation compute anchor.
+anchor__anthropic__2025,an_04,platform_anchor,AWS as primary training lane.
+anchor__anthropic__2025,an_05,platform_anchor,Trainium2 scale anchor.
+anchor__anthropic__2025,an_06,platform_anchor,AWS later confirms live Rainier scale by late 2025.
+anchor__anthropic__2026_current,an_04,platform_anchor,AWS training lane.
+anchor__anthropic__2026_current,an_05,platform_anchor,Trainium2 scale anchor.
+anchor__anthropic__2026_current,an_06,platform_anchor,AWS live scale confirmation.
+anchor__anthropic__2026_current,an_07,uplift_support,Google TPU platform expansion lane.
+anchor__anthropic__2026_year_end,an_04,platform_anchor,AWS training lane.
+anchor__anthropic__2026_year_end,an_05,platform_anchor,Trainium2 scale anchor.
+anchor__anthropic__2026_year_end,an_06,platform_anchor,AWS live scale confirmation.
+anchor__anthropic__2026_year_end,an_07,uplift_support,Google TPU platform expansion lane.
+anchor__anthropic__2026_year_end,an_11,orthogonal_check,Independent corroboration of Google TPU scale.
+anchor__anthropic__2027_year_end,an_07,platform_anchor,Google TPU lane.
+anchor__anthropic__2027_year_end,an_08,future_anchor,Anthropic's own 2027/2028 training-run power anchor.
+anchor__anthropic__2027_year_end,an_09,uplift_support,River Bend site lane.
+anchor__anthropic__2027_year_end,an_10,uplift_support,Azure/NVIDIA lane.
+anchor__anthropic__2027_year_end,an_12,orthogonal_check,Independent River Bend corroboration.
+anchor__anthropic__2028_year_end_floor,an_08,future_anchor,Anthropic's own 2028 5 GW statement.
+anchor__anthropic__2029_year_end_floor,an_08,future_anchor,2028 5 GW anchor carried forward.
+anchor__anthropic__2029_year_end_floor,an_09,uplift_support,River Bend additional ramp.
+anchor__anthropic__2029_year_end_floor,an_10,uplift_support,Azure/NVIDIA lane.
+anchor__anthropic__2029_year_end_floor,an_12,orthogonal_check,Independent River Bend corroboration.
+anchor__openai__2023,oa_01,primary_anchor,Official OpenAI company total.
+anchor__openai__2024,oa_01,primary_anchor,Official OpenAI company total.
+anchor__openai__2024,oa_02,site_floor_cross_check,Local site floor shows what the tracker alone would have counted.
+anchor__openai__2025,oa_01,primary_anchor,Official OpenAI company total.
+anchor__openai__2025,oa_02,site_floor_cross_check,Visible site floor for year-end 2025.
+anchor__openai__2026_current,oa_01,historical_backbone,Carries forward the official 2025 total as the minimum clean company anchor.
+anchor__openai__2026_current,oa_02,site_floor_cross_check,Current live site floor.
+anchor__openai__2026_current,oa_03,uplift_support,AWS deployment timing support.
+anchor__openai__2026_current,oa_04,umbrella_envelope,Stargate scale envelope.
+anchor__openai__2026_current,oa_05,uplift_support,NVIDIA timing support.
+anchor__openai__2026_current,oa_06,uplift_support,Cerebras phased capacity lane.
+anchor__openai__2026_current,oa_07,uplift_support,SB Energy buildout lane.
+anchor__openai__2026_current,oa_09,corroboration,OpenAI restatement of Stargate scale.
+anchor__openai__2026_year_end,oa_02,site_floor_anchor,Year-end floor anchor.
+anchor__openai__2026_year_end,oa_03,uplift_support,AWS deployment signal.
+anchor__openai__2026_year_end,oa_04,umbrella_envelope,Stargate scale envelope.
+anchor__openai__2026_year_end,oa_05,uplift_support,NVIDIA timing support.
+anchor__openai__2026_year_end,oa_06,uplift_support,Cerebras phased lane.
+anchor__openai__2026_year_end,oa_07,uplift_support,SB Energy lane.
+anchor__openai__2026_year_end,oa_09,corroboration,OpenAI restatement of scale.
+anchor__openai__2026_year_end,oa_10,orthogonal_check,Independent check on physical scale.
+anchor__openai__2026_year_end,oa_11,orthogonal_check,Independent trade-press check.
+anchor__openai__2027_year_end,oa_02,site_floor_anchor,Year-end floor anchor.
+anchor__openai__2027_year_end,oa_04,umbrella_envelope,Stargate scale envelope.
+anchor__openai__2027_year_end,oa_05,uplift_support,NVIDIA lane.
+anchor__openai__2027_year_end,oa_06,uplift_support,Cerebras lane.
+anchor__openai__2027_year_end,oa_07,uplift_support,SB Energy lane.
+anchor__openai__2027_year_end,oa_08,guardrail,Prevents assigning all Fairwater capacity to OpenAI.
+anchor__openai__2027_year_end,oa_09,corroboration,OpenAI restatement of scale.
+anchor__openai__2027_year_end,oa_10,orthogonal_check,Independent check on physical scale.
+anchor__openai__2027_year_end,oa_11,orthogonal_check,Independent trade-press check.
+anchor__openai__2028_year_end_floor,oa_02,rounded_floor_proxy,Rounded site floor proxy.
+anchor__openai__2029_year_end_floor,oa_02,rounded_floor_proxy,Rounded site floor proxy.

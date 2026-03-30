@@ -1,0 +1,27 @@
+data_center,owner_raw,users_raw,allocation_rule,primary_user,primary_user_confidence,allocation_notes
+Anthropic-Amazon New Carlisle,Amazon #confident,Anthropic #confident,single_user,Anthropic,confident,Full center allocated to the single listed user.
+Meta Prometheus,Meta #confident,Meta #confident,single_user,Meta,confident,Full center allocated to the single listed user.
+Microsoft Fairwater Atlanta,Microsoft #confident,OpenAI #speculative,single_user,OpenAI,speculative,Full center allocated to the single listed user.
+xAI Colossus 2,xAI #confident,xAI #confident,single_user,xAI,confident,Full center allocated to the single listed user.
+xAI Colossus 1,xAI #confident,xAI #confident,single_user,xAI,confident,Full center allocated to the single listed user.
+OpenAI Stargate Abilene,Oracle #confident,OpenAI #confident,single_user,OpenAI,confident,Full center allocated to the single listed user.
+Amazon Madison Mega Site,Amazon #confident,Anthropic #speculative,single_user,Anthropic,speculative,Full center allocated to the single listed user.
+Google New Albany,Google Cloud #confident,Google DeepMind #likely,single_user,Google DeepMind,likely,Full center allocated to the single listed user.
+Microsoft Goodyear,Microsoft #confident,OpenAI #likely,single_user,OpenAI,likely,Full center allocated to the single listed user.
+Meta Temple,Meta #confident,Meta #confident,single_user,Meta,confident,Full center allocated to the single listed user.
+Alibaba Zhangbei,Alibaba #confident,Alibaba #likely,single_user,Alibaba,likely,Full center allocated to the single listed user.
+Google Council Bluffs (East),Google Cloud,Google DeepMind #likely,single_user,Google DeepMind,likely,Full center allocated to the single listed user.
+Google Omaha,Google Cloud #confident,Google DeepMind #likely,single_user,Google DeepMind,likely,Full center allocated to the single listed user.
+Vantage TX1,Vantage,,unresolved_no_user,Unresolved,unknown,"No primary user is listed in the dataset, so capacity stays in the 'Unresolved' bucket."
+Fluidstack Lake Mariner,Fluidstack #confident,"Anthropic #likely, G42 #likely",split_by_building,MULTIPLE_PRIMARY_USERS,mixed,Buildings 1-2 are allocated to G42/Core42 and Buildings 3-5 to Anthropic based on the center notes and timeline row descriptions.
+Google Pryor (North),Google Cloud #confident,Google DeepMind #likely,single_user,Google DeepMind,likely,Full center allocated to the single listed user.
+Meta Hyperion,Meta #confident,Meta #confident,single_user,Meta,confident,Full center allocated to the single listed user.
+Microsoft Fairwater Wisconsin,Microsoft #confident,"OpenAI #likely, Microsoft #likely",primary_user_first,OpenAI,likely,Users field contains multiple companies. Capacity is allocated to the first-listed user to stay MECE.
+Goodnight,,Google DeepMind #speculative,single_user,Google DeepMind,speculative,Full center allocated to the single listed user.
+Amazon Ridgeland,Amazon #confident,Anthropic #speculative,single_user,Anthropic,speculative,Full center allocated to the single listed user.
+OpenAI Stargate UAE,G42 #likely,OpenAI #confident,single_user,OpenAI,confident,Full center allocated to the single listed user.
+Coreweave Helios,Coreweave #confident,Microsoft #speculative,single_user,Microsoft,speculative,Full center allocated to the single listed user.
+Google Cedar Rapids,Google Cloud #confident,Google DeepMind #likely,single_user,Google DeepMind,likely,Full center allocated to the single listed user.
+QTS Cedar Rapids,QTS #likely,,unresolved_no_user,Unresolved,unknown,"No primary user is listed in the dataset, so capacity stays in the 'Unresolved' bucket."
+OpenAI Stargate Shackelford,Oracle #confident,OpenAI #confident,single_user,OpenAI,confident,Full center allocated to the single listed user.
+Crusoe Abilene Expansion,NVIDIA #speculative,Meta #speculative,single_user,Meta,speculative,Full center allocated to the single listed user.

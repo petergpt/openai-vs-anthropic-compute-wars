@@ -1,0 +1,864 @@
+from __future__ import annotations
+
+import csv
+import re
+import shutil
+from dataclasses import dataclass
+from datetime import date
+from typing import Iterable
+
+import analyze_allocations as allocations
+import build_openai_anthropic_monthly_visualization as monthly_vis
+import paths
+
+PACKAGE_DIR = paths.PACKAGE_DIR
+SOURCE_INPUTS_DIR = PACKAGE_DIR / "source_inputs"
+DERIVED_DIR = PACKAGE_DIR / "derived"
+
+PUBLISHABLE_VIEW_CSV = paths.OPENAI_ANTHROPIC_PUBLISHABLE_VIEW_CSV
+EVIDENCE_PACK_CSV = paths.OPENAI_ANTHROPIC_EVIDENCE_PACK_CSV
+MONTHLY_SERIES_CSV = paths.OPENAI_ANTHROPIC_MONTHLY_SERIES_CSV
+COMPANY_SNAPSHOT_CSV = paths.COMPANY_CAPACITY_BY_SNAPSHOT_CSV
+PRIMARY_MAPPING_CSV = paths.PRIMARY_USER_MAPPING_CSV
+ALLOCATION_SNAPSHOT_CSV = paths.ALLOCATIONS_BY_SNAPSHOT_CSV
+
+COMPANIES = ("OpenAI", "Anthropic")
+DATE_BY_ROW_KEY = monthly_vis.DATE_BY_ROW_KEY
+ANCHOR_LABELS = monthly_vis.ANCHOR_LABELS
+
+MARKDOWN_LINK_RE = re.compile(r"\[([^\]]+)\]\((https?://[^)\s]+)\)")
+BARE_URL_RE = re.compile(r"https?://[^\s)>\"]+")
+INFERENCE_RE = re.compile(
+    r"\bbased on\b|\bestimate\b|\blikely\b|\bwe expect\b|\bassuming\b|\brule of thumb\b",
+    re.IGNORECASE,
+)
+
+
+@dataclass(frozen=True)
+class AnchorDefinition:
+    anchor_id: str
+    company: str
+    row_key: str
+    anchor_date: date
+    anchor_label: str
+    point_estimate_gw: float
+    low_gw: float | None
+    base_gw: float | None
+    high_gw: float | None
+    company_estimate_type: str
+    point_estimate_type: str
+    site_floor_gw: float
+    summary_note: str
+    assumption_ids: str
+
+
+def slugify(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "_", value.lower()).strip("_")
+
+
+def read_csv(path: Path) -> list[dict[str, str]]:
+    with path.open(newline="", encoding="utf-8") as handle:
+        return list(csv.DictReader(handle))
+
+
+def write_csv(path: Path, rows: Iterable[dict], fieldnames: list[str] | None = None) -> None:
+    rows = list(rows)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if fieldnames is None:
+        fieldnames = list(rows[0].keys()) if rows else []
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames, quoting=csv.QUOTE_MINIMAL)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def maybe_float(value: str | None) -> float | None:
+    if value is None:
+        return None
+    cleaned = value.strip()
+    if not cleaned:
+        return None
+    return float(cleaned)
+
+
+def rounded(value: float | None) -> float | None:
+    if value is None:
+        return None
+    return round(value, 6)
+
+
+def extract_links(text: str) -> list[tuple[str, str]]:
+    text = text or ""
+    links: list[tuple[str, str]] = []
+    seen_urls: set[str] = set()
+    for match in MARKDOWN_LINK_RE.finditer(text):
+        title = match.group(1).strip()
+        url = match.group(2).strip()
+        if url not in seen_urls:
+            links.append((title, url))
+            seen_urls.add(url)
+    for match in BARE_URL_RE.finditer(text):
+        url = match.group(0).rstrip(".,")
+        if url not in seen_urls:
+            links.append((url, url))
+            seen_urls.add(url)
+    return links
+
+
+def point_id(company: str, month_end: date) -> str:
+    return f"point__{slugify(company)}__{month_end.isoformat()}"
+
+
+def data_center_id(center: str) -> str:
+    return f"dc__{slugify(center)}"
+
+
+def timeline_row_id(center: str, snapshot_date: str) -> str:
+    return f"timeline__{slugify(center)}__{snapshot_date}"
+
+
+def synthetic_anchor_id(company: str) -> str:
+    return f"anchor__{slugify(company)}__synthetic_2023_01_31"
+
+
+def anchor_id(company: str, row_key: str) -> str:
+    return f"anchor__{slugify(company)}__{row_key}"
+
+
+def assumption_registry() -> list[dict[str, str]]:
+    return [
+        {
+            "assumption_id": "A01",
+            "scope": "allocation",
+            "description": "If a datacenter lists multiple users, allocate the full site to the first listed user to keep the chart MECE, unless an explicit split rule exists.",
+        },
+        {
+            "assumption_id": "A02",
+            "scope": "allocation",
+            "description": "Fluidstack Lake Mariner is split by building: Buildings 1-2 to G42/Core42 and Buildings 3-5 to Anthropic.",
+        },
+        {
+            "assumption_id": "A03",
+            "scope": "timeline_normalization",
+            "description": "Blank power or H100 fields in the timeline carry forward the prior known value for snapshot calculations.",
+        },
+        {
+            "assumption_id": "A04",
+            "scope": "chart",
+            "description": "The monthly chart starts from a synthetic zero baseline at 2023-01-31 so the first anchored year-end point can be paced inside 2023.",
+        },
+        {
+            "assumption_id": "A05",
+            "scope": "chart",
+            "description": "Monthly non-anchor totals are generated by smoothstep interpolation between anchor totals, blended with observed site-floor progress using the same formula as the chart builder.",
+        },
+        {
+            "assumption_id": "A06",
+            "scope": "future_anchor",
+            "description": "2026-2027 point estimates are analyst judgment values selected within debated ranges; they are not direct additive sums of the linked evidence items.",
+        },
+        {
+            "assumption_id": "A07",
+            "scope": "forward_proxy",
+            "description": "2028-2029 Anthropic values are conservative forward estimates beyond the high-confidence window; OpenAI 2028-2029 values are rounded site-floor proxies.",
+        },
+    ]
+
+
+def load_publishable_rows() -> list[dict[str, str]]:
+    return read_csv(PUBLISHABLE_VIEW_CSV)
+
+
+def load_evidence_rows() -> list[dict[str, str]]:
+    return read_csv(EVIDENCE_PACK_CSV)
+
+
+def build_anchor_definitions(
+    floor_by_company: dict[str, dict[date, float]]
+) -> list[AnchorDefinition]:
+    publish_rows = load_publishable_rows()
+    anchors: list[AnchorDefinition] = []
+
+    for company in COMPANIES:
+        anchors.append(
+            AnchorDefinition(
+                anchor_id=synthetic_anchor_id(company),
+                company=company,
+                row_key="synthetic_2023_01_31",
+                anchor_date=monthly_vis.START_MONTH,
+                anchor_label="Synthetic January 2023 baseline",
+                point_estimate_gw=0.0,
+                low_gw=None,
+                base_gw=None,
+                high_gw=None,
+                company_estimate_type="synthetic_baseline",
+                point_estimate_type="synthetic_baseline",
+                site_floor_gw=rounded(floor_by_company[company][monthly_vis.START_MONTH]) or 0.0,
+                summary_note=(
+                    "Synthetic zero baseline used only to pace the first anchored 2023 year-end point inside the monthly chart."
+                ),
+                assumption_ids="A04;A05",
+            )
+        )
+
+    for row in publish_rows:
+        row_key = row["year"]
+        anchor_date = DATE_BY_ROW_KEY[row_key]
+        for company in COMPANIES:
+            company_key = company.lower()
+            point_estimate = float(row[f"{company_key}_point_estimate"])
+            low = maybe_float(row[f"{company_key}_low"])
+            base = maybe_float(row[f"{company_key}_base"])
+            high = maybe_float(row[f"{company_key}_high"])
+            estimate_type = row[f"{company_key}_type"]
+            if row_key in {"2026_current", "2026_year_end", "2027_year_end"}:
+                assumption_ids = "A05;A06"
+            elif row_key in {"2028_year_end_floor", "2029_year_end_floor"}:
+                assumption_ids = "A05;A07"
+            else:
+                assumption_ids = "A05"
+            anchors.append(
+                AnchorDefinition(
+                    anchor_id=anchor_id(company, row_key),
+                    company=company,
+                    row_key=row_key,
+                    anchor_date=anchor_date,
+                    anchor_label=ANCHOR_LABELS[row_key],
+                    point_estimate_gw=point_estimate,
+                    low_gw=low,
+                    base_gw=base,
+                    high_gw=high,
+                    company_estimate_type=estimate_type,
+                    point_estimate_type=row["point_estimate_type"],
+                    site_floor_gw=rounded(floor_by_company[company][anchor_date]) or 0.0,
+                    summary_note=row["summary_note"],
+                    assumption_ids=assumption_ids,
+                )
+            )
+    anchors.sort(key=lambda item: (item.company, item.anchor_date, item.row_key))
+    return anchors
+
+
+def anchor_evidence_mapping() -> dict[str, list[tuple[str, str, str]]]:
+    return {
+        anchor_id("OpenAI", "2023"): [
+            ("oa_01", "primary_anchor", "Official OpenAI company total."),
+        ],
+        anchor_id("OpenAI", "2024"): [
+            ("oa_01", "primary_anchor", "Official OpenAI company total."),
+            ("oa_02", "site_floor_cross_check", "Local site floor shows what the tracker alone would have counted."),
+        ],
+        anchor_id("OpenAI", "2025"): [
+            ("oa_01", "primary_anchor", "Official OpenAI company total."),
+            ("oa_02", "site_floor_cross_check", "Visible site floor for year-end 2025."),
+        ],
+        anchor_id("OpenAI", "2026_current"): [
+            ("oa_01", "historical_backbone", "Carries forward the official 2025 total as the minimum clean company anchor."),
+            ("oa_02", "site_floor_cross_check", "Current live site floor."),
+            ("oa_03", "uplift_support", "AWS deployment timing support."),
+            ("oa_04", "umbrella_envelope", "Stargate scale envelope."),
+            ("oa_05", "uplift_support", "NVIDIA timing support."),
+            ("oa_06", "uplift_support", "Cerebras phased capacity lane."),
+            ("oa_07", "uplift_support", "SB Energy buildout lane."),
+            ("oa_09", "corroboration", "OpenAI restatement of Stargate scale."),
+        ],
+        anchor_id("OpenAI", "2026_year_end"): [
+            ("oa_02", "site_floor_anchor", "Year-end floor anchor."),
+            ("oa_03", "uplift_support", "AWS deployment signal."),
+            ("oa_04", "umbrella_envelope", "Stargate scale envelope."),
+            ("oa_05", "uplift_support", "NVIDIA timing support."),
+            ("oa_06", "uplift_support", "Cerebras phased lane."),
+            ("oa_07", "uplift_support", "SB Energy lane."),
+            ("oa_09", "corroboration", "OpenAI restatement of scale."),
+            ("oa_10", "orthogonal_check", "Independent check on physical scale."),
+            ("oa_11", "orthogonal_check", "Independent trade-press check."),
+        ],
+        anchor_id("OpenAI", "2027_year_end"): [
+            ("oa_02", "site_floor_anchor", "Year-end floor anchor."),
+            ("oa_04", "umbrella_envelope", "Stargate scale envelope."),
+            ("oa_05", "uplift_support", "NVIDIA lane."),
+            ("oa_06", "uplift_support", "Cerebras lane."),
+            ("oa_07", "uplift_support", "SB Energy lane."),
+            ("oa_08", "guardrail", "Prevents assigning all Fairwater capacity to OpenAI."),
+            ("oa_09", "corroboration", "OpenAI restatement of scale."),
+            ("oa_10", "orthogonal_check", "Independent check on physical scale."),
+            ("oa_11", "orthogonal_check", "Independent trade-press check."),
+        ],
+        anchor_id("OpenAI", "2028_year_end_floor"): [
+            ("oa_02", "rounded_floor_proxy", "Rounded site floor proxy."),
+        ],
+        anchor_id("OpenAI", "2029_year_end_floor"): [
+            ("oa_02", "rounded_floor_proxy", "Rounded site floor proxy."),
+        ],
+        anchor_id("Anthropic", "2023"): [
+            ("an_01", "continuity_proof", "Google Cloud partnership shows Anthropic compute access in 2023."),
+            ("an_02", "continuity_proof", "Google TPU v5e usage shows Anthropic already using Google compute."),
+            ("an_03", "continuity_proof", "CMA confirms Anthropic sourced compute from Google and Amazon in 2023."),
+        ],
+        anchor_id("Anthropic", "2024"): [
+            ("an_02", "continuity_proof", "Google TPU continuity proof."),
+            ("an_03", "continuity_proof", "CMA continuity proof."),
+            ("an_04", "uplift_support", "AWS as primary training partner."),
+            ("an_05", "uplift_support", "Trainium2 >5x current-generation compute anchor."),
+        ],
+        anchor_id("Anthropic", "2025"): [
+            ("an_04", "platform_anchor", "AWS as primary training lane."),
+            ("an_05", "platform_anchor", "Trainium2 scale anchor."),
+            ("an_06", "platform_anchor", "AWS later confirms live Rainier scale by late 2025."),
+        ],
+        anchor_id("Anthropic", "2026_current"): [
+            ("an_04", "platform_anchor", "AWS training lane."),
+            ("an_05", "platform_anchor", "Trainium2 scale anchor."),
+            ("an_06", "platform_anchor", "AWS live scale confirmation."),
+            ("an_07", "uplift_support", "Google TPU platform expansion lane."),
+        ],
+        anchor_id("Anthropic", "2026_year_end"): [
+            ("an_04", "platform_anchor", "AWS training lane."),
+            ("an_05", "platform_anchor", "Trainium2 scale anchor."),
+            ("an_06", "platform_anchor", "AWS live scale confirmation."),
+            ("an_07", "uplift_support", "Google TPU platform expansion lane."),
+            ("an_11", "orthogonal_check", "Independent corroboration of Google TPU scale."),
+        ],
+        anchor_id("Anthropic", "2027_year_end"): [
+            ("an_07", "platform_anchor", "Google TPU lane."),
+            ("an_08", "future_anchor", "Anthropic's own 2027/2028 training-run power anchor."),
+            ("an_09", "uplift_support", "River Bend site lane."),
+            ("an_10", "uplift_support", "Azure/NVIDIA lane."),
+            ("an_12", "orthogonal_check", "Independent River Bend corroboration."),
+        ],
+        anchor_id("Anthropic", "2028_year_end_floor"): [
+            ("an_08", "future_anchor", "Anthropic's own 2028 5 GW statement."),
+        ],
+        anchor_id("Anthropic", "2029_year_end_floor"): [
+            ("an_08", "future_anchor", "2028 5 GW anchor carried forward."),
+            ("an_09", "uplift_support", "River Bend additional ramp."),
+            ("an_10", "uplift_support", "Azure/NVIDIA lane."),
+            ("an_12", "orthogonal_check", "Independent River Bend corroboration."),
+        ],
+    }
+
+
+def load_raw_timeline_rows() -> tuple[list[dict[str, str]], dict[tuple[str, str], str], list[dict[str, str]]]:
+    raw_rows = read_csv(paths.DATA_CENTER_TIMELINES_CSV)
+    timeline_rows: list[dict[str, str]] = []
+    timeline_sources: list[dict[str, str]] = []
+    row_id_by_key: dict[tuple[str, str], str] = {}
+
+    for raw in raw_rows:
+        center = raw["Data center"]
+        snapshot_date = raw["Date"]
+        row_id = timeline_row_id(center, snapshot_date)
+        row_id_by_key[(center, snapshot_date)] = row_id
+
+        timeline_rows.append(
+            {
+                "timeline_row_id": row_id,
+                "data_center_id": data_center_id(center),
+                "data_center": center,
+                "snapshot_date": snapshot_date,
+                "construction_status": raw["Construction status"],
+                "buildings_operational": raw["Buildings operational"],
+                "power_mw": raw["Power (MW)"],
+                "h100_equivalents": raw["H100 equivalents"],
+                "total_capital_cost_2025_usd_billions": raw["Total capital cost (2025 USD billions)"],
+                "performance_8bit_ops_per_s": raw["Performance (8-bit OP/s)"],
+                "compute_cost_2025_usd_billions": raw["Compute cost (2025 USD billions)"],
+                "construction_cost_2025_usd_billions": raw["Construction cost (2025 USD billions)"],
+                "water_use_mgd": raw["Water use (MGD)"],
+                "current_h100_equivalents_from_data_center": raw["Current H100 equivalents (from Data center)"],
+                "status_inference_flag": "true" if INFERENCE_RE.search(raw["Construction status"] or "") else "false",
+            }
+        )
+
+        for source_index, (title, url) in enumerate(extract_links(raw["Construction status"]), start=1):
+            timeline_sources.append(
+                {
+                    "timeline_row_id": row_id,
+                    "source_index": source_index,
+                    "source_title": title,
+                    "source_url": url,
+                }
+            )
+
+    return timeline_rows, row_id_by_key, timeline_sources
+
+
+def build_site_floor_components(
+    months: list[date],
+    mappings_by_center: dict[str, dict],
+    rows_by_center: dict[str, list[allocations.TimelineRow]],
+    row_id_by_key: dict[tuple[str, str], str],
+) -> tuple[list[dict], dict[str, dict[str, float]], set[str]]:
+    components: list[dict] = []
+    per_point_floor: dict[str, dict[str, float]] = {}
+    relevant_centers: set[str] = set()
+
+    for target_date in months:
+        for center in sorted(rows_by_center):
+            mapping = mappings_by_center[center]
+            latest = allocations.latest_row_as_of(rows_by_center[center], target_date)
+            center_allocations = allocations.allocate_center_snapshot(
+                mapping, rows_by_center[center], target_date, []
+            )
+            for allocation in center_allocations:
+                company = allocation["allocated_user"]
+                if company not in COMPANIES:
+                    continue
+                power_gw = allocation["power_mw"] / 1000.0
+                h100_equivalents = allocation["h100_equivalents"]
+                if abs(power_gw) <= 1e-12 and abs(h100_equivalents) <= 1e-12:
+                    continue
+
+                pid = point_id(company, target_date)
+                per_point_floor.setdefault(pid, {})[center] = round(power_gw, 6)
+                relevant_centers.add(center)
+
+                components.append(
+                    {
+                        "point_id": pid,
+                        "company": company,
+                        "month_end": target_date.isoformat(),
+                        "data_center_id": data_center_id(center),
+                        "data_center": center,
+                        "allocated_power_gw": round(power_gw, 6),
+                        "allocated_h100_equivalents": round(h100_equivalents, 6),
+                        "allocation_rule": allocation["allocation_rule"],
+                        "mapping_note": mapping["allocation_notes"],
+                        "timeline_row_id": (
+                            row_id_by_key[(center, latest.snapshot_date.isoformat())]
+                            if latest is not None
+                            else ""
+                        ),
+                        "timeline_snapshot_date": latest.snapshot_date.isoformat() if latest else "",
+                        "timeline_buildings_operational": latest.buildings_operational if latest else "",
+                        "timeline_power_mw": round(latest.power_mw, 6) if latest else "",
+                        "timeline_h100_equivalents": round(latest.h100_equivalents, 6) if latest else "",
+                        "timeline_status": latest.status if latest else "",
+                    }
+                )
+
+    return components, per_point_floor, relevant_centers
+
+
+def load_relevant_center_rows(
+    relevant_centers: set[str],
+) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
+    center_rows = read_csv(paths.DATA_CENTERS_CSV)
+    registry_rows: list[dict[str, str]] = []
+    selected_source_rows: list[dict[str, str]] = []
+
+    for raw in center_rows:
+        center = raw["Name"]
+        if center not in relevant_centers:
+            continue
+        mapping, issues = allocations.build_center_mapping(raw)
+        registry_rows.append(
+            {
+                "data_center_id": data_center_id(center),
+                "data_center": center,
+                "owner_raw": raw["Owner"],
+                "users_raw": raw["Users"],
+                "primary_user": mapping["primary_user"],
+                "primary_user_confidence": mapping["primary_user_confidence"],
+                "allocation_rule": mapping["allocation_rule"],
+                "allocation_notes": mapping["allocation_notes"],
+                "current_power_mw": raw["Current power (MW)"],
+                "current_h100_equivalents": raw["Current H100 equivalents"],
+                "current_total_capital_cost_2025_usd_billions": raw["Current total capital cost (2025 USD billions)"],
+                "project": raw["Project"],
+                "investors": raw["Investors"],
+                "construction_companies": raw["Construction companies"],
+                "energy_companies": raw["Energy companies"],
+                "country": raw["Country"],
+                "address": raw["Address"],
+                "latitude": raw["Latitude"],
+                "longitude": raw["Longitude"],
+                "notes": raw["Notes"],
+                "mapping_issue_count": str(len(issues)),
+                "assumption_ids": "A01;A02" if center == "Fluidstack Lake Mariner" else ("A01" if mapping["allocation_rule"] == "primary_user_first" else ""),
+            }
+        )
+
+        for source_index, (title, url) in enumerate(extract_links(raw["Selected Sources"]), start=1):
+            selected_source_rows.append(
+                {
+                    "data_center_id": data_center_id(center),
+                    "data_center": center,
+                    "source_kind": "selected_source",
+                    "source_index": source_index,
+                    "source_title": title,
+                    "source_url": url,
+                }
+            )
+
+        calc_sheet_url = (raw.get("Calculations sheet") or "").strip()
+        if calc_sheet_url:
+            selected_source_rows.append(
+                {
+                    "data_center_id": data_center_id(center),
+                    "data_center": center,
+                    "source_kind": "calculations_sheet",
+                    "source_index": "",
+                    "source_title": "Calculations sheet",
+                    "source_url": calc_sheet_url,
+                }
+            )
+
+    registry_rows.sort(key=lambda row: row["data_center"])
+    selected_source_rows.sort(key=lambda row: (row["data_center"], row["source_kind"], str(row["source_index"])))
+    return registry_rows, selected_source_rows
+
+
+def pace_company_totals_detailed(
+    company: str,
+    months: list[date],
+    floor_by_month: dict[date, float],
+    anchors: list[AnchorDefinition],
+) -> tuple[list[dict], list[dict]]:
+    company_anchors = sorted(
+        [anchor for anchor in anchors if anchor.company == company],
+        key=lambda item: item.anchor_date,
+    )
+    real_anchor_dates = {anchor.anchor_date for anchor in company_anchors if not anchor.row_key.startswith("synthetic")}
+    anchor_by_date = {anchor.anchor_date: anchor for anchor in company_anchors}
+
+    point_rows: list[dict] = []
+    formula_rows: list[dict] = []
+
+    for start_anchor, end_anchor in zip(company_anchors, company_anchors[1:]):
+        interval_months = [
+            target_date
+            for target_date in months
+            if start_anchor.anchor_date <= target_date <= end_anchor.anchor_date
+        ]
+        if len(interval_months) < 2:
+            continue
+
+        start_total = start_anchor.point_estimate_gw
+        end_total = end_anchor.point_estimate_gw
+        total_delta = end_total - start_total
+        start_floor = floor_by_month[start_anchor.anchor_date]
+        end_floor = floor_by_month[end_anchor.anchor_date]
+        floor_delta = max(0.0, end_floor - start_floor)
+        blend_weight = monthly_vis.interval_weight(total_delta, floor_delta, end_anchor.anchor_date)
+
+        for index, target_date in enumerate(interval_months):
+            if target_date == start_anchor.anchor_date and point_rows:
+                continue
+
+            floor_gw = floor_by_month[target_date]
+            if target_date == start_anchor.anchor_date:
+                progress = 0.0
+                smooth_progress = 0.0
+                floor_progress = 0.0
+                composite_progress = 0.0
+                unclamped_total = start_total
+                total_gw = max(start_total, floor_gw)
+                estimate_basis = "synthetic_baseline"
+                floor_basis = "observed_site_change_month"
+                anchor_for_point = None
+            else:
+                progress = index / (len(interval_months) - 1)
+                smooth_progress = monthly_vis.smoothstep(progress)
+                if floor_delta > 1e-9:
+                    floor_progress = max(0.0, min(1.0, (floor_gw - start_floor) / floor_delta))
+                else:
+                    floor_progress = smooth_progress
+                composite_progress = (1.0 - blend_weight) * smooth_progress + blend_weight * floor_progress
+                unclamped_total = start_total + total_delta * composite_progress
+                total_gw = max(unclamped_total, floor_gw)
+                anchor_for_point = anchor_by_date.get(target_date) if target_date in real_anchor_dates else None
+                estimate_basis = "anchored_estimate" if anchor_for_point else "paced_month"
+                floor_basis = "observed_or_carried_floor"
+
+            pid = point_id(company, target_date)
+            point_rows.append(
+                {
+                    "point_id": pid,
+                    "company": company,
+                    "month_end": target_date.isoformat(),
+                    "plotted_total_gw": round(total_gw, 6),
+                    "site_floor_gw": round(floor_gw, 6),
+                    "uplift_gw": round(max(0.0, total_gw - floor_gw), 6),
+                    "estimate_basis": estimate_basis,
+                    "anchor_id": anchor_for_point.anchor_id if anchor_for_point else "",
+                    "start_anchor_id": start_anchor.anchor_id,
+                    "end_anchor_id": end_anchor.anchor_id,
+                    "assumption_ids": "A04;A05" if estimate_basis == "synthetic_baseline" else "A05",
+                }
+            )
+
+            formula_rows.append(
+                {
+                    "point_id": pid,
+                    "company": company,
+                    "month_end": target_date.isoformat(),
+                    "start_anchor_id": start_anchor.anchor_id,
+                    "end_anchor_id": end_anchor.anchor_id,
+                    "start_anchor_date": start_anchor.anchor_date.isoformat(),
+                    "end_anchor_date": end_anchor.anchor_date.isoformat(),
+                    "start_anchor_total_gw": round(start_total, 6),
+                    "end_anchor_total_gw": round(end_total, 6),
+                    "start_anchor_floor_gw": round(start_floor, 6),
+                    "end_anchor_floor_gw": round(end_floor, 6),
+                    "total_delta_gw": round(total_delta, 6),
+                    "floor_delta_gw": round(floor_delta, 6),
+                    "blend_weight": round(blend_weight, 6),
+                    "interval_month_index": index,
+                    "interval_month_count": len(interval_months),
+                    "progress": round(progress, 6),
+                    "smooth_progress": round(smooth_progress, 6),
+                    "floor_progress": round(floor_progress, 6),
+                    "composite_progress": round(composite_progress, 6),
+                    "unclamped_total_gw": round(unclamped_total, 6),
+                    "final_total_gw": round(total_gw, 6),
+                    "final_floor_gw": round(floor_gw, 6),
+                    "final_uplift_gw": round(max(0.0, total_gw - floor_gw), 6),
+                    "estimate_basis": estimate_basis,
+                    "anchor_id_if_exact": anchor_for_point.anchor_id if anchor_for_point else "",
+                    "assumption_ids": "A04;A05" if estimate_basis == "synthetic_baseline" else "A05",
+                }
+            )
+
+    return point_rows, formula_rows
+
+
+def build_anchor_rows(anchors: list[AnchorDefinition]) -> list[dict]:
+    rows: list[dict] = []
+    for anchor in anchors:
+        effective_anchor = max(anchor.point_estimate_gw, anchor.site_floor_gw)
+        rows.append(
+            {
+                "anchor_id": anchor.anchor_id,
+                "company": anchor.company,
+                "row_key": anchor.row_key,
+                "anchor_label": anchor.anchor_label,
+                "anchor_date": anchor.anchor_date.isoformat(),
+                "point_estimate_gw": round(anchor.point_estimate_gw, 6),
+                "chart_effective_anchor_gw": round(effective_anchor, 6),
+                "low_gw": "" if anchor.low_gw is None else round(anchor.low_gw, 6),
+                "base_gw": "" if anchor.base_gw is None else round(anchor.base_gw, 6),
+                "high_gw": "" if anchor.high_gw is None else round(anchor.high_gw, 6),
+                "site_floor_gw": round(anchor.site_floor_gw, 6),
+                "point_minus_floor_gw": round(anchor.point_estimate_gw - anchor.site_floor_gw, 6),
+                "company_estimate_type": anchor.company_estimate_type,
+                "point_estimate_type": anchor.point_estimate_type,
+                "summary_note": anchor.summary_note,
+                "assumption_ids": anchor.assumption_ids,
+            }
+        )
+    return rows
+
+
+def build_anchor_evidence_rows() -> list[dict]:
+    rows: list[dict] = []
+    for current_anchor_id, links in anchor_evidence_mapping().items():
+        for evidence_id, relationship, note in links:
+            rows.append(
+                {
+                    "anchor_id": current_anchor_id,
+                    "evidence_id": evidence_id,
+                    "relationship": relationship,
+                    "note": note,
+                }
+            )
+    rows.sort(key=lambda row: (row["anchor_id"], row["evidence_id"]))
+    return rows
+
+
+def copy_inputs() -> list[dict[str, str]]:
+    files_to_copy = [
+        paths.DATA_CENTERS_CSV,
+        paths.DATA_CENTER_TIMELINES_CSV,
+        COMPANY_SNAPSHOT_CSV,
+        PRIMARY_MAPPING_CSV,
+        ALLOCATION_SNAPSHOT_CSV,
+        MONTHLY_SERIES_CSV,
+        PUBLISHABLE_VIEW_CSV,
+        EVIDENCE_PACK_CSV,
+    ]
+
+    manifest_rows: list[dict[str, str]] = []
+
+    SOURCE_INPUTS_DIR.mkdir(parents=True, exist_ok=True)
+
+    for source in files_to_copy:
+        destination = SOURCE_INPUTS_DIR / source.name
+        shutil.copy2(source, destination)
+        row_count = sum(1 for _ in destination.open(encoding="utf-8")) - 1
+        manifest_rows.append(
+            {
+                "relative_path": f"source_inputs/{destination.name}",
+                "kind": "copied_input",
+                "row_count": str(max(row_count, 0)),
+                "description": "Copied source input or previously generated source table.",
+            }
+        )
+
+    return manifest_rows
+
+
+def build_package_readme() -> str:
+    return """# OpenAI / Anthropic Open Data Package
+
+This package is a reconciliable version of the OpenAI / Anthropic compute chart.
+
+Keys:
+- `point_id`: one plotted monthly point on the chart
+- `anchor_id`: one yearly or current anchor used to shape the line
+- `data_center_id`: one datacenter in the site-backed floor
+- `timeline_row_id`: one raw datacenter timeline row
+- `evidence_id`: one public evidence item from the evidence pack
+
+How to reconcile one chart point:
+1. Start with `derived/chart_points_monthly.csv` and pick a `point_id`.
+2. Join to `derived/chart_points_monthly_formula.csv` on `point_id` to see which anchor interval and pacing formula produced the total.
+3. Join to `derived/site_floor_components_monthly.csv` on `point_id` to see which datacenters make up the site floor for that month.
+4. Join each site component to `derived/data_center_timeline_rows.csv` on `timeline_row_id` to inspect the exact timeline row being used.
+5. Join each datacenter to `derived/data_center_registry.csv` and `derived/data_center_selected_sources.csv` on `data_center_id` to inspect the datacenter-level source list.
+6. Join the point's `anchor_id` (or its `start_anchor_id` / `end_anchor_id`) to `derived/yearly_anchor_registry.csv`.
+7. Join anchors to `derived/anchor_evidence_links.csv`, then to `source_inputs/openai_anthropic_evidence_pack.csv` on `evidence_id`, to inspect the public evidence behind the anchor.
+
+Interpretation:
+- `site_floor_gw` is the hard site-backed layer.
+- `uplift_gw` is the difference between the plotted total and the site floor.
+- Non-anchor monthly points are interpolated between anchor totals using the chart's pacing formula.
+- Future anchors from 2026 onward include analyst judgment; they are transparent here, but they are not direct company-reported totals.
+"""
+
+
+def main() -> None:
+    PACKAGE_DIR.mkdir(parents=True, exist_ok=True)
+    SOURCE_INPUTS_DIR.mkdir(parents=True, exist_ok=True)
+    DERIVED_DIR.mkdir(parents=True, exist_ok=True)
+
+    months = monthly_vis.month_ends(monthly_vis.START_MONTH, monthly_vis.END_MONTH)
+    mappings_by_center, rows_by_center = monthly_vis.load_mappings()
+    floor_by_company, _ = monthly_vis.build_monthly_floor(mappings_by_center, rows_by_center, months)
+
+    raw_timeline_rows, row_id_by_key, timeline_source_rows = load_raw_timeline_rows()
+    anchors = build_anchor_definitions(floor_by_company)
+    anchor_rows = build_anchor_rows(anchors)
+    anchor_evidence_rows = build_anchor_evidence_rows()
+
+    point_rows: list[dict] = []
+    formula_rows: list[dict] = []
+    for company in COMPANIES:
+        company_points, company_formula = pace_company_totals_detailed(
+            company=company,
+            months=months,
+            floor_by_month=floor_by_company[company],
+            anchors=anchors,
+        )
+        point_rows.extend(company_points)
+        formula_rows.extend(company_formula)
+
+    site_floor_components, floor_component_map, relevant_centers = build_site_floor_components(
+        months, mappings_by_center, rows_by_center, row_id_by_key
+    )
+    data_center_rows, data_center_source_rows = load_relevant_center_rows(relevant_centers)
+
+    timeline_rows_filtered = [
+        row for row in raw_timeline_rows if row["data_center"] in relevant_centers
+    ]
+    timeline_source_rows_filtered = [
+        row
+        for row in timeline_source_rows
+        if any(
+            timeline_rows_filtered_row["timeline_row_id"] == row["timeline_row_id"]
+            for timeline_rows_filtered_row in timeline_rows_filtered
+        )
+    ]
+
+    point_rows.sort(key=lambda row: (row["company"], row["month_end"]))
+    formula_rows.sort(key=lambda row: (row["company"], row["month_end"]))
+    site_floor_components.sort(key=lambda row: (row["company"], row["month_end"], row["data_center"]))
+    timeline_rows_filtered.sort(key=lambda row: (row["data_center"], row["snapshot_date"]))
+    timeline_source_rows_filtered.sort(key=lambda row: (row["timeline_row_id"], row["source_index"]))
+
+    write_csv(DERIVED_DIR / "assumption_registry.csv", assumption_registry())
+    write_csv(DERIVED_DIR / "yearly_anchor_registry.csv", anchor_rows)
+    write_csv(DERIVED_DIR / "anchor_evidence_links.csv", anchor_evidence_rows)
+    write_csv(DERIVED_DIR / "chart_points_monthly.csv", point_rows)
+    write_csv(DERIVED_DIR / "chart_points_monthly_formula.csv", formula_rows)
+    write_csv(DERIVED_DIR / "site_floor_components_monthly.csv", site_floor_components)
+    write_csv(DERIVED_DIR / "data_center_registry.csv", data_center_rows)
+    write_csv(DERIVED_DIR / "data_center_selected_sources.csv", data_center_source_rows)
+    write_csv(DERIVED_DIR / "data_center_timeline_rows.csv", timeline_rows_filtered)
+    write_csv(DERIVED_DIR / "data_center_timeline_row_sources.csv", timeline_source_rows_filtered)
+
+    manifest_rows = copy_inputs()
+    for derived_file in sorted(DERIVED_DIR.glob("*.csv")):
+        row_count = sum(1 for _ in derived_file.open(encoding="utf-8")) - 1
+        manifest_rows.append(
+            {
+                "relative_path": f"derived/{derived_file.name}",
+                "kind": "derived_csv",
+                "row_count": str(max(row_count, 0)),
+                "description": "Derived reconciliation table.",
+            }
+        )
+    (PACKAGE_DIR / "README.md").write_text(build_package_readme(), encoding="utf-8")
+    manifest_rows.append(
+        {
+            "relative_path": "README.md",
+            "kind": "package_readme",
+            "row_count": "",
+            "description": "How to join the package tables back to the chart.",
+        }
+    )
+    write_csv(PACKAGE_DIR / "MANIFEST.csv", manifest_rows)
+
+    point_by_id = {row["point_id"]: row for row in point_rows}
+    errors: list[str] = []
+
+    for current_point_id, center_map in floor_component_map.items():
+        expected = float(point_by_id[current_point_id]["site_floor_gw"])
+        actual = round(sum(center_map.values()), 6)
+        if abs(expected - actual) > 1e-6:
+            errors.append(
+                f"Floor mismatch for {current_point_id}: expected {expected:.6f}, got {actual:.6f}"
+            )
+
+    existing_monthly = {
+        (row["company"], row["month_end"]): row for row in read_csv(MONTHLY_SERIES_CSV)
+    }
+    for row in point_rows:
+        key = (row["company"], row["month_end"])
+        existing = existing_monthly[key]
+        for field_name in ("plotted_total_gw", "site_floor_gw", "uplift_gw"):
+            source_field = {
+                "plotted_total_gw": "total_gw",
+                "site_floor_gw": "floor_gw",
+                "uplift_gw": "uplift_gw",
+            }[field_name]
+            expected = round(float(existing[source_field]), 6)
+            actual = float(row[field_name])
+            if abs(expected - actual) > 1e-6:
+                errors.append(
+                    f"Monthly mismatch for {key} field {field_name}: expected {expected:.6f}, got {actual:.6f}"
+                )
+
+    anchor_by_id = {row["anchor_id"]: row for row in anchor_rows}
+    for row in point_rows:
+        anchor_ref = row["anchor_id"]
+        if not anchor_ref:
+            continue
+        expected = float(anchor_by_id[anchor_ref]["chart_effective_anchor_gw"])
+        actual = float(row["plotted_total_gw"])
+        if abs(expected - actual) > 1e-6:
+            errors.append(
+                f"Anchor mismatch for {anchor_ref}: expected {expected:.6f}, got {actual:.6f}"
+            )
+
+    if errors:
+        raise SystemExit("\n".join(errors))
+
+    print(f"Wrote open data package to {PACKAGE_DIR}")
+    print(f"Monthly chart points: {len(point_rows)}")
+    print(f"Site floor components: {len(site_floor_components)}")
+    print(f"Relevant data centers: {len(relevant_centers)}")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,20 @@
+relative_path,kind,row_count,description
+source_inputs/data_centers.csv,copied_input,149,Copied source input or previously generated source table.
+source_inputs/data_center_timelines.csv,copied_input,155,Copied source input or previously generated source table.
+source_inputs/company_capacity_by_snapshot.csv,copied_input,62,Copied source input or previously generated source table.
+source_inputs/data_center_primary_user_mapping.csv,copied_input,26,Copied source input or previously generated source table.
+source_inputs/data_center_allocations_by_snapshot.csv,copied_input,185,Copied source input or previously generated source table.
+source_inputs/openai_anthropic_monthly_series.csv,copied_input,168,Copied source input or previously generated source table.
+source_inputs/openai_anthropic_publishable_view.csv,copied_input,8,Copied source input or previously generated source table.
+source_inputs/openai_anthropic_evidence_pack.csv,copied_input,24,Copied source input or previously generated source table.
+derived/anchor_evidence_links.csv,derived_csv,62,Derived reconciliation table.
+derived/assumption_registry.csv,derived_csv,7,Derived reconciliation table.
+derived/chart_points_monthly.csv,derived_csv,168,Derived reconciliation table.
+derived/chart_points_monthly_formula.csv,derived_csv,168,Derived reconciliation table.
+derived/data_center_registry.csv,derived_csv,24,Derived reconciliation table.
+derived/data_center_selected_sources.csv,derived_csv,45,Derived reconciliation table.
+derived/data_center_timeline_row_sources.csv,derived_csv,33,Derived reconciliation table.
+derived/data_center_timeline_rows.csv,derived_csv,55,Derived reconciliation table.
+derived/site_floor_components_monthly.csv,derived_csv,504,Derived reconciliation table.
+derived/yearly_anchor_registry.csv,derived_csv,18,Derived reconciliation table.
+README.md,package_readme,,How to join the package tables back to the chart.

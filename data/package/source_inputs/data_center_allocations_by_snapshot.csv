@@ -1,0 +1,186 @@
+snapshot_label,snapshot_date,data_center,allocated_user,power_mw,h100_equivalents,allocation_rule,mapping_notes
+current,2026-03-27,Alibaba Zhangbei,Alibaba,203.000000,132895.401718,single_user,Full center allocated to the single listed user.
+current,2026-03-27,Amazon Madison Mega Site,Anthropic,341.000000,214348.143546,single_user,Full center allocated to the single listed user.
+current,2026-03-27,Amazon Ridgeland,Anthropic,0.000000,0.000000,single_user,Full center allocated to the single listed user.
+current,2026-03-27,Anthropic-Amazon New Carlisle,Anthropic,1092.000000,685914.059346,single_user,Full center allocated to the single listed user.
+current,2026-03-27,Coreweave Helios,Microsoft,0.000000,0.000000,single_user,Full center allocated to the single listed user.
+current,2026-03-27,Crusoe Abilene Expansion,Meta,0.000000,0.000000,single_user,Full center allocated to the single listed user.
+current,2026-03-27,Fluidstack Lake Mariner,G42,19.000000,19858.514401,split_by_building,Buildings 1-2 are allocated to G42/Core42 and Buildings 3-5 to Anthropic based on the center notes and timeline row descriptions.
+current,2026-03-27,Goodnight,Google DeepMind,0.000000,0.000000,single_user,Full center allocated to the single listed user.
+current,2026-03-27,Google Cedar Rapids,Google DeepMind,0.000000,0.000000,single_user,Full center allocated to the single listed user.
+current,2026-03-27,Google Council Bluffs (East),Google DeepMind,190.000000,92470.944922,single_user,Full center allocated to the single listed user.
+current,2026-03-27,Google New Albany,Google DeepMind,407.000000,207175.341081,single_user,Full center allocated to the single listed user.
+current,2026-03-27,Google Omaha,Google DeepMind,189.000000,65184.436584,single_user,Full center allocated to the single listed user.
+current,2026-03-27,Google Pryor (North),Google DeepMind,65.000000,17938.352703,single_user,Full center allocated to the single listed user.
+current,2026-03-27,Meta Hyperion,Meta,0.000000,0.000000,single_user,Full center allocated to the single listed user.
+current,2026-03-27,Meta Prometheus,Meta,695.000000,587818.589685,single_user,Full center allocated to the single listed user.
+current,2026-03-27,Meta Temple,Meta,198.000000,173247.671984,single_user,Full center allocated to the single listed user.
+current,2026-03-27,Microsoft Fairwater Atlanta,OpenAI,433.000000,374125.446374,single_user,Full center allocated to the single listed user.
+current,2026-03-27,Microsoft Fairwater Wisconsin,OpenAI,0.000000,0.000000,primary_user_first,Users field contains multiple companies. Capacity is allocated to the first-listed user to stay MECE.
+current,2026-03-27,Microsoft Goodyear,OpenAI,263.000000,205145.185800,single_user,Full center allocated to the single listed user.
+current,2026-03-27,OpenAI Stargate Abilene,OpenAI,295.000000,254674.077817,single_user,Full center allocated to the single listed user.
+current,2026-03-27,OpenAI Stargate Shackelford,OpenAI,0.000000,0.000000,single_user,Full center allocated to the single listed user.
+current,2026-03-27,OpenAI Stargate UAE,OpenAI,0.000000,0.000000,single_user,Full center allocated to the single listed user.
+current,2026-03-27,QTS Cedar Rapids,Unresolved,0.000000,0.000000,unresolved_no_user,"No primary user is listed in the dataset, so capacity stays in the 'Unresolved' bucket."
+current,2026-03-27,Vantage TX1,Unresolved,44.800000,38706.417383,unresolved_no_user,"No primary user is listed in the dataset, so capacity stays in the 'Unresolved' bucket."
+current,2026-03-27,xAI Colossus 1,xAI,425.000000,275795.856493,single_user,Full center allocated to the single listed user.
+current,2026-03-27,xAI Colossus 2,xAI,302.000000,280837.792032,single_user,Full center allocated to the single listed user.
+year_end_2024,2024-12-31,Alibaba Zhangbei,Alibaba,0.000000,0.000000,single_user,Full center allocated to the single listed user.
+year_end_2024,2024-12-31,Amazon Madison Mega Site,Anthropic,0.000000,0.000000,single_user,Full center allocated to the single listed user.
+year_end_2024,2024-12-31,Amazon Ridgeland,Anthropic,0.000000,0.000000,single_user,Full center allocated to the single listed user.
+year_end_2024,2024-12-31,Anthropic-Amazon New Carlisle,Anthropic,0.000000,0.000000,single_user,Full center allocated to the single listed user.
+year_end_2024,2024-12-31,Coreweave Helios,Microsoft,0.000000,0.000000,single_user,Full center allocated to the single listed user.
+year_end_2024,2024-12-31,Crusoe Abilene Expansion,Meta,0.000000,0.000000,single_user,Full center allocated to the single listed user.
+year_end_2024,2024-12-31,Goodnight,Google DeepMind,0.000000,0.000000,single_user,Full center allocated to the single listed user.
+year_end_2024,2024-12-31,Google Cedar Rapids,Google DeepMind,0.000000,0.000000,single_user,Full center allocated to the single listed user.
+year_end_2024,2024-12-31,Google Council Bluffs (East),Google DeepMind,95.000000,37746.336534,single_user,Full center allocated to the single listed user.
+year_end_2024,2024-12-31,Google New Albany,Google DeepMind,177.000000,53562.405255,single_user,Full center allocated to the single listed user.
+year_end_2024,2024-12-31,Google Omaha,Google DeepMind,189.000000,65184.436584,single_user,Full center allocated to the single listed user.
+year_end_2024,2024-12-31,Google Pryor (North),Google DeepMind,65.000000,17938.352703,single_user,Full center allocated to the single listed user.
+year_end_2024,2024-12-31,Meta Hyperion,Meta,0.000000,0.000000,single_user,Full center allocated to the single listed user.
+year_end_2024,2024-12-31,Meta Prometheus,Meta,172.000000,60753.303703,single_user,Full center allocated to the single listed user.
+year_end_2024,2024-12-31,Meta Temple,Meta,0.000000,0.000000,single_user,Full center allocated to the single listed user.
+year_end_2024,2024-12-31,Microsoft Fairwater Atlanta,OpenAI,0.000000,0.000000,single_user,Full center allocated to the single listed user.
+year_end_2024,2024-12-31,Microsoft Fairwater Wisconsin,OpenAI,0.000000,0.000000,primary_user_first,Users field contains multiple companies. Capacity is allocated to the first-listed user to stay MECE.
+year_end_2024,2024-12-31,Microsoft Goodyear,OpenAI,53.000000,29150.947924,single_user,Full center allocated to the single listed user.
+year_end_2024,2024-12-31,OpenAI Stargate Abilene,OpenAI,0.000000,0.000000,single_user,Full center allocated to the single listed user.
+year_end_2024,2024-12-31,OpenAI Stargate Shackelford,OpenAI,0.000000,0.000000,single_user,Full center allocated to the single listed user.
+year_end_2024,2024-12-31,OpenAI Stargate UAE,OpenAI,0.000000,0.000000,single_user,Full center allocated to the single listed user.
+year_end_2024,2024-12-31,QTS Cedar Rapids,Unresolved,0.000000,0.000000,unresolved_no_user,"No primary user is listed in the dataset, so capacity stays in the 'Unresolved' bucket."
+year_end_2024,2024-12-31,Vantage TX1,Unresolved,0.000000,0.000000,unresolved_no_user,"No primary user is listed in the dataset, so capacity stays in the 'Unresolved' bucket."
+year_end_2024,2024-12-31,xAI Colossus 1,xAI,181.000000,100000.000000,single_user,Full center allocated to the single listed user.
+year_end_2024,2024-12-31,xAI Colossus 2,xAI,0.000000,0.000000,single_user,Full center allocated to the single listed user.
+year_end_2025,2025-12-31,Alibaba Zhangbei,Alibaba,102.000000,66195.048004,single_user,Full center allocated to the single listed user.
+year_end_2025,2025-12-31,Amazon Madison Mega Site,Anthropic,341.000000,214348.143546,single_user,Full center allocated to the single listed user.
+year_end_2025,2025-12-31,Amazon Ridgeland,Anthropic,0.000000,0.000000,single_user,Full center allocated to the single listed user.
+year_end_2025,2025-12-31,Anthropic-Amazon New Carlisle,Anthropic,751.000000,471565.915800,single_user,Full center allocated to the single listed user.
+year_end_2025,2025-12-31,Coreweave Helios,Microsoft,0.000000,0.000000,single_user,Full center allocated to the single listed user.
+year_end_2025,2025-12-31,Crusoe Abilene Expansion,Meta,0.000000,0.000000,single_user,Full center allocated to the single listed user.
+year_end_2025,2025-12-31,Fluidstack Lake Mariner,G42,19.000000,19858.514401,split_by_building,Buildings 1-2 are allocated to G42/Core42 and Buildings 3-5 to Anthropic based on the center notes and timeline row descriptions.
+year_end_2025,2025-12-31,Goodnight,Google DeepMind,0.000000,0.000000,single_user,Full center allocated to the single listed user.
+year_end_2025,2025-12-31,Google Cedar Rapids,Google DeepMind,0.000000,0.000000,single_user,Full center allocated to the single listed user.
+year_end_2025,2025-12-31,Google Council Bluffs (East),Google DeepMind,190.000000,92470.944922,single_user,Full center allocated to the single listed user.
+year_end_2025,2025-12-31,Google New Albany,Google DeepMind,407.000000,207175.341081,single_user,Full center allocated to the single listed user.
+year_end_2025,2025-12-31,Google Omaha,Google DeepMind,189.000000,65184.436584,single_user,Full center allocated to the single listed user.
+year_end_2025,2025-12-31,Google Pryor (North),Google DeepMind,65.000000,17938.352703,single_user,Full center allocated to the single listed user.
+year_end_2025,2025-12-31,Meta Hyperion,Meta,0.000000,0.000000,single_user,Full center allocated to the single listed user.
+year_end_2025,2025-12-31,Meta Prometheus,Meta,263.000000,152627.069150,single_user,Full center allocated to the single listed user.
+year_end_2025,2025-12-31,Meta Temple,Meta,198.000000,173247.671984,single_user,Full center allocated to the single listed user.
+year_end_2025,2025-12-31,Microsoft Fairwater Atlanta,OpenAI,433.000000,374125.446374,single_user,Full center allocated to the single listed user.
+year_end_2025,2025-12-31,Microsoft Fairwater Wisconsin,OpenAI,0.000000,0.000000,primary_user_first,Users field contains multiple companies. Capacity is allocated to the first-listed user to stay MECE.
+year_end_2025,2025-12-31,Microsoft Goodyear,OpenAI,263.000000,205145.185800,single_user,Full center allocated to the single listed user.
+year_end_2025,2025-12-31,OpenAI Stargate Abilene,OpenAI,295.000000,254674.077817,single_user,Full center allocated to the single listed user.
+year_end_2025,2025-12-31,OpenAI Stargate Shackelford,OpenAI,0.000000,0.000000,single_user,Full center allocated to the single listed user.
+year_end_2025,2025-12-31,OpenAI Stargate UAE,OpenAI,0.000000,0.000000,single_user,Full center allocated to the single listed user.
+year_end_2025,2025-12-31,QTS Cedar Rapids,Unresolved,0.000000,0.000000,unresolved_no_user,"No primary user is listed in the dataset, so capacity stays in the 'Unresolved' bucket."
+year_end_2025,2025-12-31,Vantage TX1,Unresolved,0.000000,0.000000,unresolved_no_user,"No primary user is listed in the dataset, so capacity stays in the 'Unresolved' bucket."
+year_end_2025,2025-12-31,xAI Colossus 1,xAI,442.000000,275795.856493,single_user,Full center allocated to the single listed user.
+year_end_2025,2025-12-31,xAI Colossus 2,xAI,299.000000,277918.140475,single_user,Full center allocated to the single listed user.
+year_end_2026,2026-12-31,Alibaba Zhangbei,Alibaba,203.000000,132895.401718,single_user,Full center allocated to the single listed user.
+year_end_2026,2026-12-31,Amazon Madison Mega Site,Anthropic,819.000000,514435.544509,single_user,Full center allocated to the single listed user.
+year_end_2026,2026-12-31,Amazon Ridgeland,Anthropic,273.000000,171478.514836,single_user,Full center allocated to the single listed user.
+year_end_2026,2026-12-31,Anthropic-Amazon New Carlisle,Anthropic,1229.000000,771653.316764,single_user,Full center allocated to the single listed user.
+year_end_2026,2026-12-31,Coreweave Helios,Microsoft,200.000000,159551.768237,single_user,Full center allocated to the single listed user.
+year_end_2026,2026-12-31,Crusoe Abilene Expansion,Meta,0.000000,0.000000,single_user,Full center allocated to the single listed user.
+year_end_2026,2026-12-31,Fluidstack Lake Mariner,Anthropic,245.000000,202122.283982,split_by_building,Buildings 1-2 are allocated to G42/Core42 and Buildings 3-5 to Anthropic based on the center notes and timeline row descriptions.
+year_end_2026,2026-12-31,Fluidstack Lake Mariner,G42,68.000000,71753.410814,split_by_building,Buildings 1-2 are allocated to G42/Core42 and Buildings 3-5 to Anthropic based on the center notes and timeline row descriptions.
+year_end_2026,2026-12-31,Goodnight,Google DeepMind,265.000000,249026.258973,single_user,Full center allocated to the single listed user.
+year_end_2026,2026-12-31,Google Cedar Rapids,Google DeepMind,105.000000,71248.105104,single_user,Full center allocated to the single listed user.
+year_end_2026,2026-12-31,Google Council Bluffs (East),Google DeepMind,284.000000,163213.744315,single_user,Full center allocated to the single listed user.
+year_end_2026,2026-12-31,Google New Albany,Google DeepMind,543.000000,327943.405760,single_user,Full center allocated to the single listed user.
+year_end_2026,2026-12-31,Google Omaha,Google DeepMind,284.000000,135927.235978,single_user,Full center allocated to the single listed user.
+year_end_2026,2026-12-31,Google Pryor (North),Google DeepMind,454.000000,308236.483072,single_user,Full center allocated to the single listed user.
+year_end_2026,2026-12-31,Meta Hyperion,Meta,0.000000,0.000000,single_user,Full center allocated to the single listed user.
+year_end_2026,2026-12-31,Meta Prometheus,Meta,1275.000000,1171297.591291,single_user,Full center allocated to the single listed user.
+year_end_2026,2026-12-31,Meta Temple,Meta,238.000000,208318.050929,single_user,Full center allocated to the single listed user.
+year_end_2026,2026-12-31,Microsoft Fairwater Atlanta,OpenAI,859.000000,741312.696505,single_user,Full center allocated to the single listed user.
+year_end_2026,2026-12-31,Microsoft Fairwater Wisconsin,OpenAI,555.000000,558827.690753,primary_user_first,Users field contains multiple companies. Capacity is allocated to the first-listed user to stay MECE.
+year_end_2026,2026-12-31,Microsoft Goodyear,OpenAI,263.000000,205145.185800,single_user,Full center allocated to the single listed user.
+year_end_2026,2026-12-31,OpenAI Stargate Abilene,OpenAI,1180.000000,1020717.534108,single_user,Full center allocated to the single listed user.
+year_end_2026,2026-12-31,OpenAI Stargate Shackelford,OpenAI,0.000000,0.000000,single_user,Full center allocated to the single listed user.
+year_end_2026,2026-12-31,OpenAI Stargate UAE,OpenAI,280.000000,252652.854977,single_user,Full center allocated to the single listed user.
+year_end_2026,2026-12-31,QTS Cedar Rapids,Unresolved,627.000000,986732.364468,unresolved_no_user,"No primary user is listed in the dataset, so capacity stays in the 'Unresolved' bucket."
+year_end_2026,2026-12-31,Vantage TX1,Unresolved,44.800000,38706.417383,unresolved_no_user,"No primary user is listed in the dataset, so capacity stays in the 'Unresolved' bucket."
+year_end_2026,2026-12-31,xAI Colossus 1,xAI,425.000000,275795.856493,single_user,Full center allocated to the single listed user.
+year_end_2026,2026-12-31,xAI Colossus 2,xAI,1494.000000,1389590.702375,single_user,Full center allocated to the single listed user.
+year_end_2027,2027-12-31,Alibaba Zhangbei,Alibaba,203.000000,132895.401718,single_user,Full center allocated to the single listed user.
+year_end_2027,2027-12-31,Amazon Madison Mega Site,Anthropic,819.000000,514435.544509,single_user,Full center allocated to the single listed user.
+year_end_2027,2027-12-31,Amazon Ridgeland,Anthropic,1008.000000,633151.439396,single_user,Full center allocated to the single listed user.
+year_end_2027,2027-12-31,Anthropic-Amazon New Carlisle,Anthropic,1229.000000,771653.316764,single_user,Full center allocated to the single listed user.
+year_end_2027,2027-12-31,Coreweave Helios,Microsoft,200.000000,159551.768237,single_user,Full center allocated to the single listed user.
+year_end_2027,2027-12-31,Crusoe Abilene Expansion,Meta,941.000000,1480545.730167,single_user,Full center allocated to the single listed user.
+year_end_2027,2027-12-31,Fluidstack Lake Mariner,Anthropic,441.000000,397675.593734,split_by_building,Buildings 1-2 are allocated to G42/Core42 and Buildings 3-5 to Anthropic based on the center notes and timeline row descriptions.
+year_end_2027,2027-12-31,Fluidstack Lake Mariner,G42,68.000000,71753.410814,split_by_building,Buildings 1-2 are allocated to G42/Core42 and Buildings 3-5 to Anthropic based on the center notes and timeline row descriptions.
+year_end_2027,2027-12-31,Goodnight,Google DeepMind,1087.600000,1657837.248205,single_user,Full center allocated to the single listed user.
+year_end_2027,2027-12-31,Google Cedar Rapids,Google DeepMind,418.000000,525517.938353,single_user,Full center allocated to the single listed user.
+year_end_2027,2027-12-31,Google Council Bluffs (East),Google DeepMind,284.000000,163213.744315,single_user,Full center allocated to the single listed user.
+year_end_2027,2027-12-31,Google New Albany,Google DeepMind,543.000000,327943.405760,single_user,Full center allocated to the single listed user.
+year_end_2027,2027-12-31,Google Omaha,Google DeepMind,474.000000,320363.820111,single_user,Full center allocated to the single listed user.
+year_end_2027,2027-12-31,Google Pryor (North),Google DeepMind,454.000000,308236.483072,single_user,Full center allocated to the single listed user.
+year_end_2027,2027-12-31,Meta Hyperion,Meta,0.000000,0.000000,single_user,Full center allocated to the single listed user.
+year_end_2027,2027-12-31,Meta Prometheus,Meta,1275.000000,1171297.591291,single_user,Full center allocated to the single listed user.
+year_end_2027,2027-12-31,Meta Temple,Meta,238.000000,208318.050929,single_user,Full center allocated to the single listed user.
+year_end_2027,2027-12-31,Microsoft Fairwater Atlanta,OpenAI,859.000000,741312.696505,single_user,Full center allocated to the single listed user.
+year_end_2027,2027-12-31,Microsoft Fairwater Wisconsin,OpenAI,3328.000000,5191509.247094,primary_user_first,Users field contains multiple companies. Capacity is allocated to the first-listed user to stay MECE.
+year_end_2027,2027-12-31,Microsoft Goodyear,OpenAI,263.000000,205145.185800,single_user,Full center allocated to the single listed user.
+year_end_2027,2027-12-31,OpenAI Stargate Abilene,OpenAI,1180.000000,1020717.534108,single_user,Full center allocated to the single listed user.
+year_end_2027,2027-12-31,OpenAI Stargate Shackelford,OpenAI,196.000000,308236.483072,single_user,Full center allocated to the single listed user.
+year_end_2027,2027-12-31,OpenAI Stargate UAE,OpenAI,280.000000,252652.854977,single_user,Full center allocated to the single listed user.
+year_end_2027,2027-12-31,QTS Cedar Rapids,Unresolved,1587.000000,3518579.921714,unresolved_no_user,"No primary user is listed in the dataset, so capacity stays in the 'Unresolved' bucket."
+year_end_2027,2027-12-31,Vantage TX1,Unresolved,179.200000,154623.547246,unresolved_no_user,"No primary user is listed in the dataset, so capacity stays in the 'Unresolved' bucket."
+year_end_2027,2027-12-31,xAI Colossus 1,xAI,425.000000,275795.856493,single_user,Full center allocated to the single listed user.
+year_end_2027,2027-12-31,xAI Colossus 2,xAI,1494.000000,1389590.702375,single_user,Full center allocated to the single listed user.
+year_end_2028,2028-12-31,Alibaba Zhangbei,Alibaba,203.000000,132895.401718,single_user,Full center allocated to the single listed user.
+year_end_2028,2028-12-31,Amazon Madison Mega Site,Anthropic,819.000000,514435.544509,single_user,Full center allocated to the single listed user.
+year_end_2028,2028-12-31,Amazon Ridgeland,Anthropic,1008.000000,633151.439396,single_user,Full center allocated to the single listed user.
+year_end_2028,2028-12-31,Anthropic-Amazon New Carlisle,Anthropic,1229.000000,771653.316764,single_user,Full center allocated to the single listed user.
+year_end_2028,2028-12-31,Coreweave Helios,Microsoft,600.000000,478655.304711,single_user,Full center allocated to the single listed user.
+year_end_2028,2028-12-31,Crusoe Abilene Expansion,Meta,941.000000,1480545.730167,single_user,Full center allocated to the single listed user.
+year_end_2028,2028-12-31,Fluidstack Lake Mariner,Anthropic,441.000000,397675.593734,split_by_building,Buildings 1-2 are allocated to G42/Core42 and Buildings 3-5 to Anthropic based on the center notes and timeline row descriptions.
+year_end_2028,2028-12-31,Fluidstack Lake Mariner,G42,68.000000,71753.410814,split_by_building,Buildings 1-2 are allocated to G42/Core42 and Buildings 3-5 to Anthropic based on the center notes and timeline row descriptions.
+year_end_2028,2028-12-31,Goodnight,Google DeepMind,1087.600000,1657837.248205,single_user,Full center allocated to the single listed user.
+year_end_2028,2028-12-31,Google Cedar Rapids,Google DeepMind,627.000000,1121778.676099,single_user,Full center allocated to the single listed user.
+year_end_2028,2028-12-31,Google Council Bluffs (East),Google DeepMind,284.000000,163213.744315,single_user,Full center allocated to the single listed user.
+year_end_2028,2028-12-31,Google New Albany,Google DeepMind,543.000000,327943.405760,single_user,Full center allocated to the single listed user.
+year_end_2028,2028-12-31,Google Omaha,Google DeepMind,474.000000,320363.820111,single_user,Full center allocated to the single listed user.
+year_end_2028,2028-12-31,Google Pryor (North),Google DeepMind,454.000000,308236.483072,single_user,Full center allocated to the single listed user.
+year_end_2028,2028-12-31,Meta Hyperion,Meta,2262.000000,4152951.082055,single_user,Full center allocated to the single listed user.
+year_end_2028,2028-12-31,Meta Prometheus,Meta,1275.000000,1171297.591291,single_user,Full center allocated to the single listed user.
+year_end_2028,2028-12-31,Meta Temple,Meta,238.000000,208318.050929,single_user,Full center allocated to the single listed user.
+year_end_2028,2028-12-31,Microsoft Fairwater Atlanta,OpenAI,859.000000,741312.696505,single_user,Full center allocated to the single listed user.
+year_end_2028,2028-12-31,Microsoft Fairwater Wisconsin,OpenAI,3328.000000,5191509.247094,primary_user_first,Users field contains multiple companies. Capacity is allocated to the first-listed user to stay MECE.
+year_end_2028,2028-12-31,Microsoft Goodyear,OpenAI,263.000000,205145.185800,single_user,Full center allocated to the single listed user.
+year_end_2028,2028-12-31,OpenAI Stargate Abilene,OpenAI,1180.000000,1020717.534108,single_user,Full center allocated to the single listed user.
+year_end_2028,2028-12-31,OpenAI Stargate Shackelford,OpenAI,196.000000,308236.483072,single_user,Full center allocated to the single listed user.
+year_end_2028,2028-12-31,OpenAI Stargate UAE,OpenAI,1400.000000,2021222.839818,single_user,Full center allocated to the single listed user.
+year_end_2028,2028-12-31,QTS Cedar Rapids,Unresolved,1587.000000,3518579.921714,unresolved_no_user,"No primary user is listed in the dataset, so capacity stays in the 'Unresolved' bucket."
+year_end_2028,2028-12-31,Vantage TX1,Unresolved,179.200000,154623.547246,unresolved_no_user,"No primary user is listed in the dataset, so capacity stays in the 'Unresolved' bucket."
+year_end_2028,2028-12-31,xAI Colossus 1,xAI,425.000000,275795.856493,single_user,Full center allocated to the single listed user.
+year_end_2028,2028-12-31,xAI Colossus 2,xAI,1494.000000,1389590.702375,single_user,Full center allocated to the single listed user.
+year_end_2029,2029-12-31,Alibaba Zhangbei,Alibaba,203.000000,132895.401718,single_user,Full center allocated to the single listed user.
+year_end_2029,2029-12-31,Amazon Madison Mega Site,Anthropic,819.000000,514435.544509,single_user,Full center allocated to the single listed user.
+year_end_2029,2029-12-31,Amazon Ridgeland,Anthropic,1008.000000,633151.439396,single_user,Full center allocated to the single listed user.
+year_end_2029,2029-12-31,Anthropic-Amazon New Carlisle,Anthropic,1229.000000,771653.316764,single_user,Full center allocated to the single listed user.
+year_end_2029,2029-12-31,Coreweave Helios,Microsoft,800.000000,638207.072947,single_user,Full center allocated to the single listed user.
+year_end_2029,2029-12-31,Crusoe Abilene Expansion,Meta,941.000000,1480545.730167,single_user,Full center allocated to the single listed user.
+year_end_2029,2029-12-31,Fluidstack Lake Mariner,Anthropic,441.000000,397675.593734,split_by_building,Buildings 1-2 are allocated to G42/Core42 and Buildings 3-5 to Anthropic based on the center notes and timeline row descriptions.
+year_end_2029,2029-12-31,Fluidstack Lake Mariner,G42,68.000000,71753.410814,split_by_building,Buildings 1-2 are allocated to G42/Core42 and Buildings 3-5 to Anthropic based on the center notes and timeline row descriptions.
+year_end_2029,2029-12-31,Goodnight,Google DeepMind,1087.600000,1657837.248205,single_user,Full center allocated to the single listed user.
+year_end_2029,2029-12-31,Google Cedar Rapids,Google DeepMind,627.000000,1121778.676099,single_user,Full center allocated to the single listed user.
+year_end_2029,2029-12-31,Google Council Bluffs (East),Google DeepMind,284.000000,163213.744315,single_user,Full center allocated to the single listed user.
+year_end_2029,2029-12-31,Google New Albany,Google DeepMind,543.000000,327943.405760,single_user,Full center allocated to the single listed user.
+year_end_2029,2029-12-31,Google Omaha,Google DeepMind,474.000000,320363.820111,single_user,Full center allocated to the single listed user.
+year_end_2029,2029-12-31,Google Pryor (North),Google DeepMind,454.000000,308236.483072,single_user,Full center allocated to the single listed user.
+year_end_2029,2029-12-31,Meta Hyperion,Meta,2262.000000,4152951.082055,single_user,Full center allocated to the single listed user.
+year_end_2029,2029-12-31,Meta Prometheus,Meta,1275.000000,1171297.591291,single_user,Full center allocated to the single listed user.
+year_end_2029,2029-12-31,Meta Temple,Meta,238.000000,208318.050929,single_user,Full center allocated to the single listed user.
+year_end_2029,2029-12-31,Microsoft Fairwater Atlanta,OpenAI,859.000000,741312.696505,single_user,Full center allocated to the single listed user.
+year_end_2029,2029-12-31,Microsoft Fairwater Wisconsin,OpenAI,3328.000000,5191509.247094,primary_user_first,Users field contains multiple companies. Capacity is allocated to the first-listed user to stay MECE.
+year_end_2029,2029-12-31,Microsoft Goodyear,OpenAI,263.000000,205145.185800,single_user,Full center allocated to the single listed user.
+year_end_2029,2029-12-31,OpenAI Stargate Abilene,OpenAI,1180.000000,1020717.534108,single_user,Full center allocated to the single listed user.
+year_end_2029,2029-12-31,OpenAI Stargate Shackelford,OpenAI,1960.000000,4163719.050025,single_user,Full center allocated to the single listed user.
+year_end_2029,2029-12-31,OpenAI Stargate UAE,OpenAI,1400.000000,2021222.839818,single_user,Full center allocated to the single listed user.
+year_end_2029,2029-12-31,QTS Cedar Rapids,Unresolved,1587.000000,3518579.921714,unresolved_no_user,"No primary user is listed in the dataset, so capacity stays in the 'Unresolved' bucket."
+year_end_2029,2029-12-31,Vantage TX1,Unresolved,179.200000,154623.547246,unresolved_no_user,"No primary user is listed in the dataset, so capacity stays in the 'Unresolved' bucket."
+year_end_2029,2029-12-31,xAI Colossus 1,xAI,425.000000,275795.856493,single_user,Full center allocated to the single listed user.
+year_end_2029,2029-12-31,xAI Colossus 2,xAI,1494.000000,1389590.702375,single_user,Full center allocated to the single listed user.

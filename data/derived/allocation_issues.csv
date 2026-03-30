@@ -1,0 +1,16 @@
+data_center,severity,issue_type,detail
+Microsoft Fairwater Atlanta,medium,speculative_user,Primary user evidence is speculative.
+Amazon Madison Mega Site,medium,speculative_user,Primary user evidence is speculative.
+Vantage TX1,high,missing_user,"Users field is blank, so the center cannot be attributed to an end user without adding an external assumption."
+Fluidstack Lake Mariner,medium,multi_user_split_required,"Users field lists multiple users, so the site is split by building to stay MECE instead of allocating the entire center to one company."
+Microsoft Fairwater Wisconsin,high,multi_user_primary_assumed,"Users field lists OpenAI, Microsoft. All capacity is assigned to OpenAI because the request requires a primary-only, non-overlapping allocation."
+Goodnight,medium,missing_owner,Owner field is blank.
+Goodnight,medium,speculative_user,Primary user evidence is speculative.
+Amazon Ridgeland,medium,speculative_user,Primary user evidence is speculative.
+Coreweave Helios,medium,speculative_user,Primary user evidence is speculative.
+QTS Cedar Rapids,high,missing_user,"Users field is blank, so the center cannot be attributed to an end user without adding an external assumption."
+Crusoe Abilene Expansion,medium,speculative_owner,Owner is only tagged as speculative: NVIDIA.
+Crusoe Abilene Expansion,medium,speculative_user,Primary user evidence is speculative.
+xAI Colossus 1,medium,missing_timeline_h100,"H100 equivalents are blank on 2025-03-06, so the prior known value is carried forward for snapshots."
+xAI Colossus 1,medium,non_monotonic_power_timeline,Power drops from 442.0 MW to 348.0 MW on 2025-09-17.
+xAI Colossus 1,medium,non_monotonic_h100_timeline,H100 equivalents drop from 275796 to 209125 on 2025-09-17.

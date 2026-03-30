@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenAI / Anthropic Monthly Compute Buildout</title>
+    <style>
+      :root {
+        --page: #fbfbfa;
+        --surface: #ffffff;
+        --surface-strong: #ffffff;
+        --ink: #121212;
+        --muted: #6a6a66;
+        --line: rgba(18, 18, 18, 0.12);
+        --openai: #101010;
+        --anthropic: #db5c2b;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        min-height: 100svh;
+        min-height: 100dvh;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--ink);
+        background: var(--page);
+      }
+
+      body::before {
+        display: none;
+      }
+
+      .wrap {
+        width: 100%;
+        min-height: 100vh;
+        min-height: 100svh;
+        min-height: 100dvh;
+        margin: 0;
+        padding: 0;
+      }
+
+      .chart-card {
+        position: relative;
+        min-height: 100vh;
+        min-height: 100svh;
+        min-height: 100dvh;
+        height: 100vh;
+        height: 100svh;
+        height: 100dvh;
+        overflow: hidden;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        border: none;
+        background: var(--surface);
+      }
+
+      .chart-card::before {
+        display: none;
+      }
+
+      .header {
+        position: relative;
+        z-index: 1;
+        padding: 0.9rem 1.1rem 0.05rem;
+      }
+
+      .title-block h1 {
+        margin: 0;
+        font-family: inherit;
+        font-size: clamp(1.7rem, 3.2vw, 2.55rem);
+        font-weight: 700;
+        line-height: 1;
+        letter-spacing: -0.04em;
+      }
+
+      .title-block p {
+        margin: 0.16rem 0 0;
+        max-width: 22rem;
+        font-size: 0.9rem;
+        color: var(--muted);
+        line-height: 1.25;
+      }
+
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem 0.95rem;
+        margin-top: 0.5rem;
+        font-size: 0.76rem;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        color: var(--muted);
+      }
+
+      .legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+      }
+
+      .swatch {
+        width: 15px;
+        height: 3px;
+        border-radius: 0;
+        border: none;
+      }
+
+      .swatch.openai {
+        background: var(--openai);
+      }
+
+      .swatch.anthropic {
+        background: var(--anthropic);
+      }
+
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.45rem;
+        margin-top: 0.48rem;
+      }
+
+      .controls-label,
+      .lag-note {
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        color: var(--muted);
+      }
+
+      .toggle-group {
+        display: inline-flex;
+        align-items: center;
+        gap: 0;
+        padding: 0;
+        border: 1px solid rgba(18, 18, 18, 0.12);
+        border-radius: 3px;
+        background: #ffffff;
+        overflow: hidden;
+      }
+
+      .toggle-button {
+        border: none;
+        margin: 0;
+        padding: 0.34rem 0.64rem;
+        border-radius: 0;
+        background: transparent;
+        color: var(--muted);
+        font: inherit;
+        font-size: 0.74rem;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        cursor: pointer;
+        box-shadow: inset -1px 0 0 rgba(18, 18, 18, 0.08);
+      }
+
+      .toggle-button:hover {
+        background: rgba(18, 18, 18, 0.045);
+        color: var(--ink);
+      }
+
+      .toggle-button[data-active="true"] {
+        background: #161616;
+        color: #ffffff;
+        box-shadow: none;
+      }
+
+      .chart-stage {
+        position: relative;
+        display: flex;
+        align-items: stretch;
+        min-height: 0;
+        padding: 0 0.9rem;
+      }
+
+      svg {
+        position: relative;
+        z-index: 1;
+        display: block;
+        width: 100%;
+        height: 100%;
+        min-height: 0;
+      }
+
+      .axis-label,
+      .tick-label,
+      .year-label {
+        fill: var(--muted);
+        font-size: 12px;
+        letter-spacing: 0.03em;
+      }
+
+      .axis-label {
+        font-weight: 600;
+      }
+
+      .year-label {
+        font-size: 12px;
+        letter-spacing: 0.1em;
+        font-weight: 600;
+      }
+
+      .grid-line {
+        stroke: rgba(18, 18, 18, 0.1);
+        stroke-width: 1;
+        stroke-dasharray: 2 8;
+      }
+
+      .axis-line {
+        stroke: rgba(18, 18, 18, 0.18);
+        stroke-width: 1.15;
+      }
+
+      .quarter-line {
+        stroke: rgba(18, 18, 18, 0.08);
+        stroke-width: 1;
+      }
+
+      .total-line {
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 5;
+      }
+
+      .anchor-ring {
+        fill: #ffffff;
+        stroke-width: 2.25;
+      }
+
+      .anchor-fill {
+        stroke: none;
+      }
+
+      .right-label {
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+
+      .model-stem {
+        stroke-width: 1.2;
+        opacity: 0.28;
+      }
+
+      .model-marker-release {
+        stroke: #ffffff;
+        stroke-width: 1.5;
+      }
+
+      .model-marker-train {
+        fill: #ffffff;
+        stroke-width: 1.9;
+      }
+
+      .model-chip {
+        fill: #ffffff;
+        stroke: rgba(18, 18, 18, 0.15);
+        stroke-width: 1;
+      }
+
+      .model-chip-text {
+        font-size: 9.5px;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+      }
+
+      .footer-line {
+        padding: 0.05rem 1.1rem 0.8rem;
+        font-size: 0.72rem;
+        color: var(--muted);
+        letter-spacing: 0;
+      }
+
+      @media (max-width: 920px) {
+        .wrap {
+          min-height: 100vh;
+          min-height: 100svh;
+          min-height: 100dvh;
+        }
+
+        .header {
+          padding: 0.8rem 0.9rem 0.05rem;
+        }
+
+        .chart-stage {
+          padding: 0 0.45rem;
+        }
+
+        .footer-line {
+          padding: 0.05rem 0.9rem 0.8rem;
+        }
+
+        .controls {
+          gap: 0.55rem;
+        }
+
+        .toggle-button {
+          padding: 0.32rem 0.54rem;
+          font-size: 0.72rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <section class="chart-card">
+        <div class="header">
+          <div class="title-block">
+            <h1>OpenAI vs Anthropic compute</h1>
+            <p>GW by month. Dots = year-end anchors.</p>
+            <div class="legend">
+              <span class="legend-item"><span class="swatch openai"></span>OpenAI</span>
+              <span class="legend-item"><span class="swatch anthropic"></span>Anthropic</span>
+            </div>
+            <div class="controls">
+              <span class="controls-label">Range</span>
+              <div class="toggle-group" role="group" aria-label="Chart range mode">
+                <button class="toggle-button" data-range-mode="to-date" data-active="false" type="button">To date</button>
+                <button class="toggle-button" data-range-mode="full" data-active="true" type="button">Full</button>
+              </div>
+              <span class="controls-label">Models</span>
+              <div class="toggle-group" role="group" aria-label="Model overlay mode">
+                <button class="toggle-button" data-overlay-mode="off" data-active="false" type="button">Off</button>
+                <button class="toggle-button" data-overlay-mode="release" data-active="true" type="button">Release</button>
+                <button class="toggle-button" data-overlay-mode="train" data-active="false" type="button">Train</button>
+              </div>
+              <span class="lag-note">Train = release - 6m</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="chart-stage">
+          <svg id="chart" viewBox="0 0 1320 760" aria-label="OpenAI and Anthropic compute buildout chart"></svg>
+        </div>
+
+        <div class="footer-line">
+          Source: public estimates paced monthly between year-end anchors; flagship models only.
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const DATA = {"months":["2023-01-31","2023-02-28","2023-03-31","2023-04-30","2023-05-31","2023-06-30","2023-07-31","2023-08-31","2023-09-30","2023-10-31","2023-11-30","2023-12-31","2024-01-31","2024-02-29","2024-03-31","2024-04-30","2024-05-31","2024-06-30","2024-07-31","2024-08-31","2024-09-30","2024-10-31","2024-11-30","2024-12-31","2025-01-31","2025-02-28","2025-03-31","2025-04-30","2025-05-31","2025-06-30","2025-07-31","2025-08-31","2025-09-30","2025-10-31","2025-11-30","2025-12-31","2026-01-31","2026-02-28","2026-03-31","2026-04-30","2026-05-31","2026-06-30","2026-07-31","2026-08-31","2026-09-30","2026-10-31","2026-11-30","2026-12-31","2027-01-31","2027-02-28","2027-03-31","2027-04-30","2027-05-31","2027-06-30","2027-07-31","2027-08-31","2027-09-30","2027-10-31","2027-11-30","2027-12-31","2028-01-31","2028-02-29","2028-03-31","2028-04-30","2028-05-31","2028-06-30","2028-07-31","2028-08-31","2028-09-30","2028-10-31","2028-11-30","2028-12-31","2029-01-31","2029-02-28","2029-03-31","2029-04-30","2029-05-31","2029-06-30","2029-07-31","2029-08-31","2029-09-30","2029-10-31","2029-11-30","2029-12-31"],"companies":[{"key":"openai","name":"OpenAI","color":"#101010","points":[{"month_end":"2023-01-31","total_gw":0.0,"floor_gw":0.0,"uplift_gw":0.0,"estimate_basis":"synthetic_baseline","anchor_label":"","anchor_target_gw":"","anchor_note":"The monthly line starts from a synthetic zero baseline in January 2023 so the first anchored year-end point can be paced inside the year.","pacing_interval":"Synthetic January 2023 baseline -> 2023 year-end","floor_basis":"observed_site_change_month","floor_events":[]},{"month_end":"2023-02-28","total_gw":0.003575,"floor_gw":0.0,"uplift_gw":0.003575,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"Synthetic January 2023 baseline -> 2023 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2023-03-31","total_gw":0.013376,"floor_gw":0.0,"uplift_gw":0.013376,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"Synthetic January 2023 baseline -> 2023 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2023-04-30","total_gw":0.074546,"floor_gw":0.053,"uplift_gw":0.021546,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"Synthetic January 2023 baseline -> 2023 year-end","floor_basis":"observed_site_change_month","floor_events":["Microsoft Goodyear +0.053 GW"]},{"month_end":"2023-05-31","total_gw":0.092649,"floor_gw":0.053,"uplift_gw":0.039649,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"Synthetic January 2023 baseline -> 2023 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2023-06-30","total_gw":0.112828,"floor_gw":0.053,"uplift_gw":0.059828,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"Synthetic January 2023 baseline -> 2023 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2023-07-31","total_gw":0.133698,"floor_gw":0.053,"uplift_gw":0.080698,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"Synthetic January 2023 baseline -> 2023 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2023-08-31","total_gw":0.153877,"floor_gw":0.053,"uplift_gw":0.100877,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"Synthetic January 2023 baseline -> 2023 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2023-09-30","total_gw":0.17198,"floor_gw":0.053,"uplift_gw":0.11898,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"Synthetic January 2023 baseline -> 2023 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2023-10-31","total_gw":0.186624,"floor_gw":0.053,"uplift_gw":0.133624,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"Synthetic January 2023 baseline -> 2023 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2023-11-30","total_gw":0.196425,"floor_gw":0.053,"uplift_gw":0.143425,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"Synthetic January 2023 baseline -> 2023 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2023-12-31","total_gw":0.2,"floor_gw":0.053,"uplift_gw":0.147,"estimate_basis":"anchored_estimate","anchor_label":"2023 year-end","anchor_target_gw":"0.2","anchor_note":"OpenAI is from the company memo series. Anthropic is a triangulated range from Google continuity, TPU usage, and CMA evidence of Google/Amazon compute sourcing.","pacing_interval":"Synthetic January 2023 baseline -> 2023 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2024-01-31","total_gw":0.20787,"floor_gw":0.053,"uplift_gw":0.15487,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2023 year-end -> 2024 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2024-02-29","total_gw":0.22963,"floor_gw":0.053,"uplift_gw":0.17663,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2023 year-end -> 2024 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2024-03-31","total_gw":0.2625,"floor_gw":0.053,"uplift_gw":0.2095,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2023 year-end -> 2024 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2024-04-30","total_gw":0.303704,"floor_gw":0.053,"uplift_gw":0.250704,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2023 year-end -> 2024 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2024-05-31","total_gw":0.350463,"floor_gw":0.053,"uplift_gw":0.297463,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2023 year-end -> 2024 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2024-06-30","total_gw":0.4,"floor_gw":0.053,"uplift_gw":0.347,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2023 year-end -> 2024 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2024-07-31","total_gw":0.449537,"floor_gw":0.053,"uplift_gw":0.396537,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2023 year-end -> 2024 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2024-08-31","total_gw":0.496296,"floor_gw":0.053,"uplift_gw":0.443296,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2023 year-end -> 2024 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2024-09-30","total_gw":0.5375,"floor_gw":0.053,"uplift_gw":0.4845,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2023 year-end -> 2024 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2024-10-31","total_gw":0.57037,"floor_gw":0.053,"uplift_gw":0.51737,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2023 year-end -> 2024 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2024-11-30","total_gw":0.59213,"floor_gw":0.053,"uplift_gw":0.53913,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2023 year-end -> 2024 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2024-12-31","total_gw":0.6,"floor_gw":0.053,"uplift_gw":0.547,"estimate_basis":"anchored_estimate","anchor_label":"2024 year-end","anchor_target_gw":"0.6","anchor_note":"Anthropic 2024 is explicitly not zero. The public estimate comes from AWS primary-training-partner evidence and the December 2024 Rainier >5x statement, constrained by later Rainier site scale.","pacing_interval":"2023 year-end -> 2024 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2025-01-31","total_gw":0.648883,"floor_gw":0.105,"uplift_gw":0.543883,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2024 year-end -> 2025 year-end","floor_basis":"observed_site_change_month","floor_events":["Microsoft Goodyear +0.052 GW"]},{"month_end":"2025-02-28","total_gw":0.684151,"floor_gw":0.105,"uplift_gw":0.579151,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2024 year-end -> 2025 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2025-03-31","total_gw":0.73743,"floor_gw":0.105,"uplift_gw":0.63243,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2024 year-end -> 2025 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2025-04-30","total_gw":0.804215,"floor_gw":0.105,"uplift_gw":0.699215,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2024 year-end -> 2025 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2025-05-31","total_gw":0.880005,"floor_gw":0.105,"uplift_gw":0.775005,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2024 year-end -> 2025 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2025-06-30","total_gw":1.062423,"floor_gw":0.252,"uplift_gw":0.810423,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2024 year-end -> 2025 year-end","floor_basis":"observed_site_change_month","floor_events":["OpenAI Stargate Abilene +0.147 GW"]},{"month_end":"2025-07-31","total_gw":1.142715,"floor_gw":0.252,"uplift_gw":0.890715,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2024 year-end -> 2025 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2025-08-31","total_gw":1.218505,"floor_gw":0.252,"uplift_gw":0.966505,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2024 year-end -> 2025 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2025-09-30","total_gw":1.497878,"floor_gw":0.558,"uplift_gw":0.939878,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2024 year-end -> 2025 year-end","floor_basis":"observed_site_change_month","floor_events":["Microsoft Goodyear +0.158 GW","OpenAI Stargate Abilene +0.148 GW"]},{"month_end":"2025-10-31","total_gw":1.851975,"floor_gw":0.991,"uplift_gw":0.860975,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2024 year-end -> 2025 year-end","floor_basis":"observed_site_change_month","floor_events":["Microsoft Fairwater Atlanta +0.433 GW"]},{"month_end":"2025-11-30","total_gw":1.887243,"floor_gw":0.991,"uplift_gw":0.896243,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2024 year-end -> 2025 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2025-12-31","total_gw":1.9,"floor_gw":0.991,"uplift_gw":0.909,"estimate_basis":"anchored_estimate","anchor_label":"2025 year-end","anchor_target_gw":"1.9","anchor_note":"Anthropic year-end 2025 visible floor is 1.092 GW; public AWS and Google platform evidence imply actual compute access likely exceeded that floor.","pacing_interval":"2024 year-end -> 2025 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2026-01-31","total_gw":1.907259,"floor_gw":0.991,"uplift_gw":0.916259,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2025 year-end -> March 2026 current","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2026-02-28","total_gw":1.920741,"floor_gw":0.991,"uplift_gw":0.929741,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2025 year-end -> March 2026 current","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2026-03-31","total_gw":2.0,"floor_gw":1.546,"uplift_gw":0.454,"estimate_basis":"anchored_estimate","anchor_label":"March 2026 current","anchor_target_gw":"2","anchor_note":"Current 2026 ranges use the floor as a hard lower bound. OpenAI carries forward the official 1.9 GW 2025 company total as the clean minimum best-view anchor; Anthropic allows a partial Google uplift above the AWS-heavy visible floor.","pacing_interval":"2025 year-end -> March 2026 current","floor_basis":"observed_site_change_month","floor_events":["Microsoft Fairwater Wisconsin +0.555 GW"]},{"month_end":"2026-04-30","total_gw":2.228231,"floor_gw":1.841,"uplift_gw":0.387231,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"March 2026 current -> 2026 year-end","floor_basis":"observed_site_change_month","floor_events":["OpenAI Stargate Abilene +0.295 GW"]},{"month_end":"2026-05-31","total_gw":2.577005,"floor_gw":2.267,"uplift_gw":0.310005,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"March 2026 current -> 2026 year-end","floor_basis":"observed_site_change_month","floor_events":["Microsoft Fairwater Atlanta +0.426 GW"]},{"month_end":"2026-06-30","total_gw":2.637262,"floor_gw":2.267,"uplift_gw":0.370262,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"March 2026 current -> 2026 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2026-07-31","total_gw":3.134102,"floor_gw":2.857,"uplift_gw":0.277102,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"March 2026 current -> 2026 year-end","floor_basis":"observed_site_change_month","floor_events":["OpenAI Stargate Abilene +0.590 GW"]},{"month_end":"2026-08-31","total_gw":3.209268,"floor_gw":2.857,"uplift_gw":0.352268,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"March 2026 current -> 2026 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2026-09-30","total_gw":3.280707,"floor_gw":2.857,"uplift_gw":0.423707,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"March 2026 current -> 2026 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2026-10-31","total_gw":3.340964,"floor_gw":2.857,"uplift_gw":0.483964,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"March 2026 current -> 2026 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2026-11-30","total_gw":3.382585,"floor_gw":2.857,"uplift_gw":0.525585,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"March 2026 current -> 2026 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2026-12-31","total_gw":3.6,"floor_gw":3.137,"uplift_gw":0.463,"estimate_basis":"anchored_estimate","anchor_label":"2026 year-end","anchor_target_gw":"3.6","anchor_note":"Year-end 2026 ranges start from the heuristic site-backed lower bounds. OpenAI adds only selective non-floor site/provider lanes such as Norway and Cerebras; Anthropic adds a mostly separate Google platform on top of the tracked AWS-heavy floor.","pacing_interval":"March 2026 current -> 2026 year-end","floor_basis":"observed_site_change_month","floor_events":["OpenAI Stargate UAE +0.280 GW"]},{"month_end":"2027-01-31","total_gw":3.737905,"floor_gw":3.333,"uplift_gw":0.404905,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2026 year-end -> 2027 year-end","floor_basis":"observed_site_change_month","floor_events":["OpenAI Stargate Shackelford +0.196 GW"]},{"month_end":"2027-02-28","total_gw":4.126812,"floor_gw":3.887,"uplift_gw":0.239812,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2026 year-end -> 2027 year-end","floor_basis":"observed_site_change_month","floor_events":["Microsoft Fairwater Wisconsin +0.554 GW"]},{"month_end":"2027-03-31","total_gw":4.186636,"floor_gw":3.887,"uplift_gw":0.299636,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2026 year-end -> 2027 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2027-04-30","total_gw":4.261627,"floor_gw":3.887,"uplift_gw":0.374627,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2026 year-end -> 2027 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2027-05-31","total_gw":5.046601,"floor_gw":4.997,"uplift_gw":0.049601,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2026 year-end -> 2027 year-end","floor_basis":"observed_site_change_month","floor_events":["Microsoft Fairwater Wisconsin +1.110 GW"]},{"month_end":"2027-06-30","total_gw":5.136759,"floor_gw":4.997,"uplift_gw":0.139759,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2026 year-end -> 2027 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2027-07-31","total_gw":5.226916,"floor_gw":4.997,"uplift_gw":0.229916,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2026 year-end -> 2027 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2027-08-31","total_gw":5.312018,"floor_gw":4.997,"uplift_gw":0.315018,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2026 year-end -> 2027 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2027-09-30","total_gw":6.106,"floor_gw":6.106,"uplift_gw":0.0,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2026 year-end -> 2027 year-end","floor_basis":"observed_site_change_month","floor_events":["Microsoft Fairwater Wisconsin +1.109 GW"]},{"month_end":"2027-10-31","total_gw":6.146074,"floor_gw":6.106,"uplift_gw":0.040074,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2026 year-end -> 2027 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2027-11-30","total_gw":6.185676,"floor_gw":6.106,"uplift_gw":0.079676,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2026 year-end -> 2027 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2027-12-31","total_gw":6.2,"floor_gw":6.106,"uplift_gw":0.094,"estimate_basis":"anchored_estimate","anchor_label":"2027 year-end","anchor_target_gw":"6.2","anchor_note":"Year-end 2027 ranges again start from the lower-bound floor. OpenAI remains sensitive to the full Wisconsin attribution; Anthropic remains a floor-plus-Google-platform estimate.","pacing_interval":"2026 year-end -> 2027 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2028-01-31","total_gw":7.226,"floor_gw":7.226,"uplift_gw":0.0,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2027 year-end -> 2028 year-end","floor_basis":"observed_site_change_month","floor_events":["OpenAI Stargate UAE +1.120 GW"]},{"month_end":"2028-02-29","total_gw":7.226,"floor_gw":7.226,"uplift_gw":0.0,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2027 year-end -> 2028 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2028-03-31","total_gw":7.226,"floor_gw":7.226,"uplift_gw":0.0,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2027 year-end -> 2028 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2028-04-30","total_gw":7.226,"floor_gw":7.226,"uplift_gw":0.0,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2027 year-end -> 2028 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2028-05-31","total_gw":7.226,"floor_gw":7.226,"uplift_gw":0.0,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2027 year-end -> 2028 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2028-06-30","total_gw":7.226,"floor_gw":7.226,"uplift_gw":0.0,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2027 year-end -> 2028 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2028-07-31","total_gw":7.226,"floor_gw":7.226,"uplift_gw":0.0,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2027 year-end -> 2028 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2028-08-31","total_gw":7.226,"floor_gw":7.226,"uplift_gw":0.0,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2027 year-end -> 2028 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2028-09-30","total_gw":7.226,"floor_gw":7.226,"uplift_gw":0.0,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2027 year-end -> 2028 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2028-10-31","total_gw":7.226,"floor_gw":7.226,"uplift_gw":0.0,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2027 year-end -> 2028 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2028-11-30","total_gw":7.226,"floor_gw":7.226,"uplift_gw":0.0,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2027 year-end -> 2028 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2028-12-31","total_gw":7.226,"floor_gw":7.226,"uplift_gw":0.0,"estimate_basis":"anchored_estimate","anchor_label":"2028 year-end","anchor_target_gw":"7.2","anchor_note":"Beyond 2027, the public floor stays incomplete. OpenAI remains a conservative rounded floor proxy, while Anthropic uses Anthropic's own 2028 5 GW training-run projection as the best late-year anchor.","pacing_interval":"2027 year-end -> 2028 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2029-01-31","total_gw":8.99,"floor_gw":8.99,"uplift_gw":0.0,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2028 year-end -> 2029 year-end","floor_basis":"observed_site_change_month","floor_events":["OpenAI Stargate Shackelford +1.764 GW"]},{"month_end":"2029-02-28","total_gw":8.99,"floor_gw":8.99,"uplift_gw":0.0,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2028 year-end -> 2029 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2029-03-31","total_gw":8.99,"floor_gw":8.99,"uplift_gw":0.0,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2028 year-end -> 2029 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2029-04-30","total_gw":8.99,"floor_gw":8.99,"uplift_gw":0.0,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2028 year-end -> 2029 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2029-05-31","total_gw":8.99,"floor_gw":8.99,"uplift_gw":0.0,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2028 year-end -> 2029 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2029-06-30","total_gw":8.99,"floor_gw":8.99,"uplift_gw":0.0,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2028 year-end -> 2029 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2029-07-31","total_gw":8.99,"floor_gw":8.99,"uplift_gw":0.0,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2028 year-end -> 2029 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2029-08-31","total_gw":8.99,"floor_gw":8.99,"uplift_gw":0.0,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2028 year-end -> 2029 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2029-09-30","total_gw":8.99,"floor_gw":8.99,"uplift_gw":0.0,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2028 year-end -> 2029 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2029-10-31","total_gw":8.99,"floor_gw":8.99,"uplift_gw":0.0,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2028 year-end -> 2029 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2029-11-30","total_gw":8.99,"floor_gw":8.99,"uplift_gw":0.0,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2028 year-end -> 2029 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2029-12-31","total_gw":9.0,"floor_gw":8.99,"uplift_gw":0.01,"estimate_basis":"anchored_estimate","anchor_label":"2029 year-end","anchor_target_gw":"9","anchor_note":"2029 remains overlap-heavy, but a decline would be nonsensical given the 2028 anchor and continued River Bend, Google, and Microsoft-linked ramps. Anthropic therefore steps up modestly above the 2028 anchor.","pacing_interval":"2028 year-end -> 2029 year-end","floor_basis":"carried_floor","floor_events":[]}]},{"key":"anthropic","name":"Anthropic","color":"#db5c2b","points":[{"month_end":"2023-01-31","total_gw":0.0,"floor_gw":0.0,"uplift_gw":0.0,"estimate_basis":"synthetic_baseline","anchor_label":"","anchor_target_gw":"","anchor_note":"The monthly line starts from a synthetic zero baseline in January 2023 so the first anchored year-end point can be paced inside the year.","pacing_interval":"Synthetic January 2023 baseline -> 2023 year-end","floor_basis":"observed_site_change_month","floor_events":[]},{"month_end":"2023-02-28","total_gw":0.001863,"floor_gw":0.0,"uplift_gw":0.001863,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"Synthetic January 2023 baseline -> 2023 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2023-03-31","total_gw":0.006972,"floor_gw":0.0,"uplift_gw":0.006972,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"Synthetic January 2023 baseline -> 2023 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2023-04-30","total_gw":0.014606,"floor_gw":0.0,"uplift_gw":0.014606,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"Synthetic January 2023 baseline -> 2023 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2023-05-31","total_gw":0.024042,"floor_gw":0.0,"uplift_gw":0.024042,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"Synthetic January 2023 baseline -> 2023 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2023-06-30","total_gw":0.03456,"floor_gw":0.0,"uplift_gw":0.03456,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"Synthetic January 2023 baseline -> 2023 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2023-07-31","total_gw":0.04544,"floor_gw":0.0,"uplift_gw":0.04544,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"Synthetic January 2023 baseline -> 2023 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2023-08-31","total_gw":0.055958,"floor_gw":0.0,"uplift_gw":0.055958,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"Synthetic January 2023 baseline -> 2023 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2023-09-30","total_gw":0.065394,"floor_gw":0.0,"uplift_gw":0.065394,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"Synthetic January 2023 baseline -> 2023 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2023-10-31","total_gw":0.073028,"floor_gw":0.0,"uplift_gw":0.073028,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"Synthetic January 2023 baseline -> 2023 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2023-11-30","total_gw":0.078137,"floor_gw":0.0,"uplift_gw":0.078137,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"Synthetic January 2023 baseline -> 2023 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2023-12-31","total_gw":0.08,"floor_gw":0.0,"uplift_gw":0.08,"estimate_basis":"anchored_estimate","anchor_label":"2023 year-end","anchor_target_gw":"0.08","anchor_note":"OpenAI is from the company memo series. Anthropic is a triangulated range from Google continuity, TPU usage, and CMA evidence of Google/Amazon compute sourcing.","pacing_interval":"Synthetic January 2023 baseline -> 2023 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2024-01-31","total_gw":0.081968,"floor_gw":0.0,"uplift_gw":0.081968,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2023 year-end -> 2024 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2024-02-29","total_gw":0.087407,"floor_gw":0.0,"uplift_gw":0.087407,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2023 year-end -> 2024 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2024-03-31","total_gw":0.095625,"floor_gw":0.0,"uplift_gw":0.095625,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2023 year-end -> 2024 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2024-04-30","total_gw":0.105926,"floor_gw":0.0,"uplift_gw":0.105926,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2023 year-end -> 2024 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2024-05-31","total_gw":0.117616,"floor_gw":0.0,"uplift_gw":0.117616,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2023 year-end -> 2024 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2024-06-30","total_gw":0.13,"floor_gw":0.0,"uplift_gw":0.13,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2023 year-end -> 2024 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2024-07-31","total_gw":0.142384,"floor_gw":0.0,"uplift_gw":0.142384,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2023 year-end -> 2024 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2024-08-31","total_gw":0.154074,"floor_gw":0.0,"uplift_gw":0.154074,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2023 year-end -> 2024 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2024-09-30","total_gw":0.164375,"floor_gw":0.0,"uplift_gw":0.164375,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2023 year-end -> 2024 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2024-10-31","total_gw":0.172593,"floor_gw":0.0,"uplift_gw":0.172593,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2023 year-end -> 2024 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2024-11-30","total_gw":0.178032,"floor_gw":0.0,"uplift_gw":0.178032,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2023 year-end -> 2024 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2024-12-31","total_gw":0.18,"floor_gw":0.0,"uplift_gw":0.18,"estimate_basis":"anchored_estimate","anchor_label":"2024 year-end","anchor_target_gw":"0.18","anchor_note":"Anthropic 2024 is explicitly not zero. The public estimate comes from AWS primary-training-partner evidence and the December 2024 Rainier >5x statement, constrained by later Rainier site scale.","pacing_interval":"2023 year-end -> 2024 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2025-01-31","total_gw":0.188336,"floor_gw":0.0,"uplift_gw":0.188336,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2024 year-end -> 2025 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2025-02-28","total_gw":0.211383,"floor_gw":0.0,"uplift_gw":0.211383,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2024 year-end -> 2025 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2025-03-31","total_gw":0.246199,"floor_gw":0.0,"uplift_gw":0.246199,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2024 year-end -> 2025 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2025-04-30","total_gw":0.289841,"floor_gw":0.0,"uplift_gw":0.289841,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2024 year-end -> 2025 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2025-05-31","total_gw":0.339368,"floor_gw":0.0,"uplift_gw":0.339368,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2024 year-end -> 2025 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2025-06-30","total_gw":0.914082,"floor_gw":0.819,"uplift_gw":0.095082,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2024 year-end -> 2025 year-end","floor_basis":"observed_site_change_month","floor_events":["Amazon Madison Mega Site +0.341 GW","Anthropic-Amazon New Carlisle +0.478 GW"]},{"month_end":"2025-07-31","total_gw":0.96655,"floor_gw":0.819,"uplift_gw":0.14755,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2024 year-end -> 2025 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2025-08-31","total_gw":1.016077,"floor_gw":0.819,"uplift_gw":0.197077,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2024 year-end -> 2025 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2025-09-30","total_gw":1.059719,"floor_gw":0.819,"uplift_gw":0.240719,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2024 year-end -> 2025 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2025-10-31","total_gw":1.094535,"floor_gw":0.819,"uplift_gw":0.275535,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2024 year-end -> 2025 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2025-11-30","total_gw":1.117582,"floor_gw":0.819,"uplift_gw":0.298582,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2024 year-end -> 2025 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2025-12-31","total_gw":1.3,"floor_gw":1.092,"uplift_gw":0.208,"estimate_basis":"anchored_estimate","anchor_label":"2025 year-end","anchor_target_gw":"1.3","anchor_note":"Anthropic year-end 2025 visible floor is 1.092 GW; public AWS and Google platform evidence imply actual compute access likely exceeded that floor.","pacing_interval":"2024 year-end -> 2025 year-end","floor_basis":"observed_site_change_month","floor_events":["Anthropic-Amazon New Carlisle +0.273 GW"]},{"month_end":"2026-01-31","total_gw":1.321778,"floor_gw":1.092,"uplift_gw":0.229778,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2025 year-end -> March 2026 current","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2026-02-28","total_gw":1.362222,"floor_gw":1.092,"uplift_gw":0.270222,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2025 year-end -> March 2026 current","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2026-03-31","total_gw":1.6,"floor_gw":1.433,"uplift_gw":0.167,"estimate_basis":"anchored_estimate","anchor_label":"March 2026 current","anchor_target_gw":"1.6","anchor_note":"Current 2026 ranges use the floor as a hard lower bound. OpenAI carries forward the official 1.9 GW 2025 company total as the clean minimum best-view anchor; Anthropic allows a partial Google uplift above the AWS-heavy visible floor.","pacing_interval":"2025 year-end -> March 2026 current","floor_basis":"observed_site_change_month","floor_events":["Anthropic-Amazon New Carlisle +0.341 GW"]},{"month_end":"2026-04-30","total_gw":1.626824,"floor_gw":1.433,"uplift_gw":0.193824,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"March 2026 current -> 2026 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2026-05-31","total_gw":1.959557,"floor_gw":1.755,"uplift_gw":0.204557,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"March 2026 current -> 2026 year-end","floor_basis":"observed_site_change_month","floor_events":["Amazon Ridgeland +0.273 GW","Fluidstack Lake Mariner +0.049 GW"]},{"month_end":"2026-06-30","total_gw":2.174614,"floor_gw":1.892,"uplift_gw":0.282614,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"March 2026 current -> 2026 year-end","floor_basis":"observed_site_change_month","floor_events":["Anthropic-Amazon New Carlisle +0.137 GW"]},{"month_end":"2026-07-31","total_gw":2.298003,"floor_gw":1.892,"uplift_gw":0.406003,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"March 2026 current -> 2026 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2026-08-31","total_gw":2.42783,"floor_gw":1.892,"uplift_gw":0.53583,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"March 2026 current -> 2026 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2026-09-30","total_gw":2.938437,"floor_gw":2.37,"uplift_gw":0.568437,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"March 2026 current -> 2026 year-end","floor_basis":"observed_site_change_month","floor_events":["Amazon Madison Mega Site +0.478 GW"]},{"month_end":"2026-10-31","total_gw":3.201289,"floor_gw":2.566,"uplift_gw":0.635289,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"March 2026 current -> 2026 year-end","floor_basis":"observed_site_change_month","floor_events":["Fluidstack Lake Mariner +0.196 GW"]},{"month_end":"2026-11-30","total_gw":3.273176,"floor_gw":2.566,"uplift_gw":0.707176,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"March 2026 current -> 2026 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2026-12-31","total_gw":3.3,"floor_gw":2.566,"uplift_gw":0.734,"estimate_basis":"anchored_estimate","anchor_label":"2026 year-end","anchor_target_gw":"3.3","anchor_note":"Year-end 2026 ranges start from the heuristic site-backed lower bounds. OpenAI adds only selective non-floor site/provider lanes such as Norway and Cerebras; Anthropic adds a mostly separate Google platform on top of the tracked AWS-heavy floor.","pacing_interval":"March 2026 current -> 2026 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2027-01-31","total_gw":3.307856,"floor_gw":2.566,"uplift_gw":0.741856,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2026 year-end -> 2027 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2027-02-28","total_gw":3.329575,"floor_gw":2.566,"uplift_gw":0.763575,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2026 year-end -> 2027 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2027-03-31","total_gw":3.509909,"floor_gw":2.762,"uplift_gw":0.747909,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2026 year-end -> 2027 year-end","floor_basis":"observed_site_change_month","floor_events":["Fluidstack Lake Mariner +0.196 GW"]},{"month_end":"2027-04-30","total_gw":3.551036,"floor_gw":2.762,"uplift_gw":0.789036,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2026 year-end -> 2027 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2027-05-31","total_gw":3.597709,"floor_gw":2.762,"uplift_gw":0.835709,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2026 year-end -> 2027 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2027-06-30","total_gw":3.647154,"floor_gw":2.762,"uplift_gw":0.885154,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2026 year-end -> 2027 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2027-07-31","total_gw":3.6966,"floor_gw":2.762,"uplift_gw":0.9346,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2026 year-end -> 2027 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2027-08-31","total_gw":3.743272,"floor_gw":2.762,"uplift_gw":0.981272,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2026 year-end -> 2027 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2027-09-30","total_gw":4.337616,"floor_gw":3.497,"uplift_gw":0.840616,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2026 year-end -> 2027 year-end","floor_basis":"observed_site_change_month","floor_events":["Amazon Ridgeland +0.735 GW"]},{"month_end":"2027-10-31","total_gw":4.370425,"floor_gw":3.497,"uplift_gw":0.873425,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2026 year-end -> 2027 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2027-11-30","total_gw":4.392144,"floor_gw":3.497,"uplift_gw":0.895144,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2026 year-end -> 2027 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2027-12-31","total_gw":4.4,"floor_gw":3.497,"uplift_gw":0.903,"estimate_basis":"anchored_estimate","anchor_label":"2027 year-end","anchor_target_gw":"4.4","anchor_note":"Year-end 2027 ranges again start from the lower-bound floor. OpenAI remains sensitive to the full Wisconsin attribution; Anthropic remains a floor-plus-Google-platform estimate.","pacing_interval":"2026 year-end -> 2027 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2028-01-31","total_gw":4.411806,"floor_gw":3.497,"uplift_gw":0.914806,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2027 year-end -> 2028 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2028-02-29","total_gw":4.444444,"floor_gw":3.497,"uplift_gw":0.947444,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2027 year-end -> 2028 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2028-03-31","total_gw":4.49375,"floor_gw":3.497,"uplift_gw":0.99675,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2027 year-end -> 2028 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2028-04-30","total_gw":4.555556,"floor_gw":3.497,"uplift_gw":1.058556,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2027 year-end -> 2028 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2028-05-31","total_gw":4.625694,"floor_gw":3.497,"uplift_gw":1.128694,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2027 year-end -> 2028 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2028-06-30","total_gw":4.7,"floor_gw":3.497,"uplift_gw":1.203,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2027 year-end -> 2028 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2028-07-31","total_gw":4.774306,"floor_gw":3.497,"uplift_gw":1.277306,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2027 year-end -> 2028 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2028-08-31","total_gw":4.844444,"floor_gw":3.497,"uplift_gw":1.347444,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2027 year-end -> 2028 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2028-09-30","total_gw":4.90625,"floor_gw":3.497,"uplift_gw":1.40925,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2027 year-end -> 2028 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2028-10-31","total_gw":4.955556,"floor_gw":3.497,"uplift_gw":1.458556,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2027 year-end -> 2028 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2028-11-30","total_gw":4.988194,"floor_gw":3.497,"uplift_gw":1.491194,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2027 year-end -> 2028 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2028-12-31","total_gw":5.0,"floor_gw":3.497,"uplift_gw":1.503,"estimate_basis":"anchored_estimate","anchor_label":"2028 year-end","anchor_target_gw":"5","anchor_note":"Beyond 2027, the public floor stays incomplete. OpenAI remains a conservative rounded floor proxy, while Anthropic uses Anthropic's own 2028 5 GW training-run projection as the best late-year anchor.","pacing_interval":"2027 year-end -> 2028 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2029-01-31","total_gw":5.011806,"floor_gw":3.497,"uplift_gw":1.514806,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2028 year-end -> 2029 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2029-02-28","total_gw":5.044444,"floor_gw":3.497,"uplift_gw":1.547444,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2028 year-end -> 2029 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2029-03-31","total_gw":5.09375,"floor_gw":3.497,"uplift_gw":1.59675,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2028 year-end -> 2029 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2029-04-30","total_gw":5.155556,"floor_gw":3.497,"uplift_gw":1.658556,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2028 year-end -> 2029 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2029-05-31","total_gw":5.225694,"floor_gw":3.497,"uplift_gw":1.728694,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2028 year-end -> 2029 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2029-06-30","total_gw":5.3,"floor_gw":3.497,"uplift_gw":1.803,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2028 year-end -> 2029 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2029-07-31","total_gw":5.374306,"floor_gw":3.497,"uplift_gw":1.877306,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2028 year-end -> 2029 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2029-08-31","total_gw":5.444444,"floor_gw":3.497,"uplift_gw":1.947444,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2028 year-end -> 2029 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2029-09-30","total_gw":5.50625,"floor_gw":3.497,"uplift_gw":2.00925,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2028 year-end -> 2029 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2029-10-31","total_gw":5.555556,"floor_gw":3.497,"uplift_gw":2.058556,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2028 year-end -> 2029 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2029-11-30","total_gw":5.588194,"floor_gw":3.497,"uplift_gw":2.091194,"estimate_basis":"paced_month","anchor_label":"","anchor_target_gw":"","anchor_note":"","pacing_interval":"2028 year-end -> 2029 year-end","floor_basis":"carried_floor","floor_events":[]},{"month_end":"2029-12-31","total_gw":5.6,"floor_gw":3.497,"uplift_gw":2.103,"estimate_basis":"anchored_estimate","anchor_label":"2029 year-end","anchor_target_gw":"5.6","anchor_note":"2029 remains overlap-heavy, but a decline would be nonsensical given the 2028 anchor and continued River Bend, Google, and Microsoft-linked ramps. Anthropic therefore steps up modestly above the 2028 anchor.","pacing_interval":"2028 year-end -> 2029 year-end","floor_basis":"carried_floor","floor_events":[]}]}],"models":[{"name":"OpenAI","models":[{"model_key":"openai:gpt-4","model_name":"GPT-4","short_label":"GPT-4","display_label":"GPT-4","release_date":"2023-03-14","estimated_training_start_date":"2022-09-14","source_url":"https://openai.com/index/gpt-4-research/","source_title":"GPT-4"},{"model_key":"openai:gpt-4-turbo","model_name":"GPT-4 Turbo","short_label":"4 Turbo","display_label":"GPT-4T","release_date":"2023-11-06","estimated_training_start_date":"2023-05-06","source_url":"https://openai.com/index/new-models-and-developer-products-announced-at-devday/","source_title":"New models and developer products announced at DevDay"},{"model_key":"openai:gpt-4o","model_name":"GPT-4o","short_label":"4o","display_label":"GPT-4o","release_date":"2024-05-13","estimated_training_start_date":"2023-11-13","source_url":"https://openai.com/index/hello-gpt-4o/","source_title":"Hello GPT-4o"},{"model_key":"openai:o1-preview","model_name":"OpenAI o1-preview","short_label":"o1-preview","display_label":"o1p","release_date":"2024-09-12","estimated_training_start_date":"2024-03-12","source_url":"https://openai.com/index/introducing-openai-o1-preview/","source_title":"Introducing OpenAI o1-preview"},{"model_key":"openai:o1","model_name":"OpenAI o1","short_label":"o1","display_label":"o1","release_date":"2024-12-05","estimated_training_start_date":"2024-06-05","source_url":"https://openai.com/index/introducing-chatgpt-pro/","source_title":"Introducing ChatGPT Pro"},{"model_key":"openai:gpt-4.5","model_name":"GPT-4.5","short_label":"4.5","display_label":"GPT-4.5","release_date":"2025-02-27","estimated_training_start_date":"2024-08-27","source_url":"https://openai.com/index/introducing-gpt-4-5/","source_title":"Introducing GPT-4.5"},{"model_key":"openai:gpt-4.1","model_name":"GPT-4.1","short_label":"4.1","display_label":"GPT-4.1","release_date":"2025-04-14","estimated_training_start_date":"2024-10-14","source_url":"https://openai.com/index/gpt-4-1/","source_title":"Introducing GPT-4.1 in the API"},{"model_key":"openai:o3","model_name":"OpenAI o3","short_label":"o3","display_label":"o3","release_date":"2025-04-16","estimated_training_start_date":"2024-10-16","source_url":"https://openai.com/index/introducing-o3-and-o4-mini/","source_title":"Introducing OpenAI o3 and o4-mini"},{"model_key":"openai:gpt-5","model_name":"GPT-5","short_label":"5","display_label":"GPT-5","release_date":"2025-08-07","estimated_training_start_date":"2025-02-07","source_url":"https://openai.com/index/introducing-gpt-5-for-developers/","source_title":"Introducing GPT-5 for developers"},{"model_key":"openai:gpt-5.1","model_name":"GPT-5.1","short_label":"5.1","display_label":"GPT-5.1","release_date":"2025-11-13","estimated_training_start_date":"2025-05-13","source_url":"https://developers.openai.com/api/docs/changelog","source_title":"Changelog | OpenAI API"},{"model_key":"openai:gpt-5.2","model_name":"GPT-5.2","short_label":"5.2","display_label":"GPT-5.2","release_date":"2025-12-11","estimated_training_start_date":"2025-06-11","source_url":"https://developers.openai.com/api/docs/changelog","source_title":"Changelog | OpenAI API"},{"model_key":"openai:gpt-5.4","model_name":"GPT-5.4","short_label":"5.4","display_label":"GPT-5.4","release_date":"2026-03-05","estimated_training_start_date":"2025-09-05","source_url":"https://openai.com/index/introducing-gpt-5-4/","source_title":"Introducing GPT-5.4"}]},{"name":"Anthropic","models":[{"model_key":"anthropic:claude-2","model_name":"Claude 2","short_label":"Claude 2","display_label":"C2","release_date":"2023-07-11","estimated_training_start_date":"2023-01-11","source_url":"https://www.anthropic.com/news/claude-2","source_title":"Claude 2"},{"model_key":"anthropic:claude-2.1","model_name":"Claude 2.1","short_label":"2.1","display_label":"2.1","release_date":"2023-11-21","estimated_training_start_date":"2023-05-21","source_url":"https://www.anthropic.com/news/claude-2-1","source_title":"Introducing Claude 2.1"},{"model_key":"anthropic:claude-3-opus","model_name":"Claude 3 Opus","short_label":"3 Opus","display_label":"3O","release_date":"2024-03-04","estimated_training_start_date":"2023-09-04","source_url":"https://www.anthropic.com/news/claude-3-family","source_title":"Introducing the next generation of Claude"},{"model_key":"anthropic:claude-3.5-sonnet","model_name":"Claude 3.5 Sonnet","short_label":"3.5 Sonnet","display_label":"3.5S","release_date":"2024-06-21","estimated_training_start_date":"2023-12-21","source_url":"https://www.anthropic.com/news/claude-3-5-sonnet","source_title":"Claude 3.5 Sonnet"},{"model_key":"anthropic:claude-3.5-sonnet-new","model_name":"Claude 3.5 Sonnet (new)","short_label":"3.5 Sonnet+","display_label":"3.5S+","release_date":"2024-10-22","estimated_training_start_date":"2024-04-22","source_url":"https://www.anthropic.com/news/3-5-models-and-computer-use","source_title":"Introducing computer use"},{"model_key":"anthropic:claude-3.7-sonnet","model_name":"Claude 3.7 Sonnet","short_label":"3.7 Sonnet","display_label":"3.7S","release_date":"2025-02-24","estimated_training_start_date":"2024-08-24","source_url":"https://www.anthropic.com/news/claude-3-7-sonnet","source_title":"Claude 3.7 Sonnet and Claude Code"},{"model_key":"anthropic:claude-opus-4","model_name":"Claude Opus 4","short_label":"Opus 4","display_label":"O4","release_date":"2025-05-22","estimated_training_start_date":"2024-11-22","source_url":"https://www.anthropic.com/news/claude-4","source_title":"Introducing Claude 4"},{"model_key":"anthropic:claude-opus-4.1","model_name":"Claude Opus 4.1","short_label":"Opus 4.1","display_label":"O4.1","release_date":"2025-08-05","estimated_training_start_date":"2025-02-05","source_url":"https://www.anthropic.com/news/claude-opus-4-1","source_title":"Claude Opus 4.1"},{"model_key":"anthropic:claude-sonnet-4.5","model_name":"Claude Sonnet 4.5","short_label":"Sonnet 4.5","display_label":"S4.5","release_date":"2025-09-29","estimated_training_start_date":"2025-03-29","source_url":"https://www.anthropic.com/news/claude-sonnet-4-5","source_title":"Introducing Claude Sonnet 4.5"},{"model_key":"anthropic:claude-opus-4.5","model_name":"Claude Opus 4.5","short_label":"Opus 4.5","display_label":"O4.5","release_date":"2025-11-24","estimated_training_start_date":"2025-05-24","source_url":"https://www.anthropic.com/news/claude-opus-4-5","source_title":"Introducing Claude Opus 4.5"},{"model_key":"anthropic:claude-opus-4.6","model_name":"Claude Opus 4.6","short_label":"Opus 4.6","display_label":"O4.6","release_date":"2026-02-05","estimated_training_start_date":"2025-08-05","source_url":"https://www.anthropic.com/news/claude-opus-4-6","source_title":"Introducing Claude Opus 4.6"}]}],"training_lag_months":6,"default_overlay_mode":"release","default_range_mode":"full","current_cutoff_date":"2026-03-31"};
+
+      const svg = document.getElementById("chart");
+      const stage = document.querySelector(".chart-stage");
+      const overlayButtons = Array.from(document.querySelectorAll("[data-overlay-mode]"));
+      const rangeButtons = Array.from(document.querySelectorAll("[data-range-mode]"));
+      let overlayMode = DATA.default_overlay_mode || "release";
+      let rangeMode = DATA.default_range_mode || "full";
+
+      const makeSvg = (tag, attrs = {}) => {
+        const element = document.createElementNS("http://www.w3.org/2000/svg", tag);
+        for (const [key, value] of Object.entries(attrs)) {
+          element.setAttribute(key, value);
+        }
+        return element;
+      };
+
+      const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+      const isoToTime = (value) => Date.parse(`${value}T00:00:00Z`);
+      const measureChipWidth = (label, isCompact) => 18 + label.length * (isCompact ? 5.9 : 6.5);
+
+      const months = DATA.months;
+      const monthTimes = months.map((month) => isoToTime(month));
+      const minTime = monthTimes[0];
+      const maxTime = monthTimes[monthTimes.length - 1];
+      const currentCutoffTime = isoToTime(DATA.current_cutoff_date);
+
+      const companies = DATA.companies.map((company) => ({
+        ...company,
+        points: company.points.map((point) => ({
+          ...point,
+          time: isoToTime(point.month_end),
+        })),
+      }));
+
+      const modelsByCompany = new Map(companies.map((company) => [company.name, []]));
+      DATA.models.forEach((entry) => {
+        const bucket = modelsByCompany.get(entry.name);
+        if (!bucket) {
+          return;
+        }
+        entry.models.forEach((model) => {
+          bucket.push({
+            ...model,
+            release_time: isoToTime(model.release_date),
+            training_start_time: isoToTime(model.estimated_training_start_date),
+          });
+        });
+      });
+
+      const yearPositions = months
+        .map((month) => (month.endsWith("-12-31") ? { month, time: isoToTime(month) } : null))
+        .filter(Boolean);
+
+      const quarterPositions = months
+        .map((month) => {
+          const parsed = new Date(`${month}T00:00:00Z`);
+          const monthNumber = parsed.getUTCMonth() + 1;
+          return [1, 4, 7, 10].includes(monthNumber)
+            ? { month, time: isoToTime(month) }
+            : null;
+        })
+        .filter(Boolean);
+
+      const setOverlayMode = (mode) => {
+        overlayMode = mode;
+        overlayButtons.forEach((button) => {
+          button.dataset.active = button.dataset.overlayMode === overlayMode ? "true" : "false";
+        });
+        queueRender();
+      };
+
+      overlayButtons.forEach((button) => {
+        button.addEventListener("click", () => setOverlayMode(button.dataset.overlayMode));
+      });
+
+      const setRangeMode = (mode) => {
+        rangeMode = mode;
+        rangeButtons.forEach((button) => {
+          button.dataset.active = button.dataset.rangeMode === rangeMode ? "true" : "false";
+        });
+        queueRender();
+      };
+
+      rangeButtons.forEach((button) => {
+        button.addEventListener("click", () => setRangeMode(button.dataset.rangeMode));
+      });
+
+      const interpolateValueAtTime = (points, targetTime) => {
+        if (targetTime <= points[0].time) {
+          return points[0].total_gw;
+        }
+        if (targetTime >= points[points.length - 1].time) {
+          return points[points.length - 1].total_gw;
+        }
+        for (let index = 1; index < points.length; index += 1) {
+          const current = points[index];
+          if (targetTime <= current.time) {
+            const previous = points[index - 1];
+            const span = current.time - previous.time;
+            const progress = span === 0 ? 0 : (targetTime - previous.time) / span;
+            return previous.total_gw + (current.total_gw - previous.total_gw) * progress;
+          }
+        }
+        return points[points.length - 1].total_gw;
+      };
+
+      function renderModelOverlay(rootGroup, geometry) {
+        if (overlayMode === "off") {
+          return;
+        }
+
+        const appendReleaseMarker = (group, x, y, color) => {
+          group.appendChild(
+            makeSvg("circle", {
+              cx: x,
+              cy: y,
+              r: geometry.isCompact ? 3.7 : 4.1,
+              class: "model-marker-release",
+              fill: color,
+            })
+          );
+        };
+
+        const appendTrainingMarker = (group, x, y, color) => {
+          const size = geometry.isCompact ? 6.4 : 7.2;
+          group.appendChild(
+            makeSvg("rect", {
+              x: x - size / 2,
+              y: y - size / 2,
+              width: size,
+              height: size,
+              rx: 1.2,
+              class: "model-marker-train",
+              stroke: color,
+              transform: `rotate(45 ${x} ${y})`,
+            })
+          );
+        };
+
+        if (geometry.isCompact || geometry.modelBandHeight <= 0) {
+          companies.forEach((company) => {
+            const models = (modelsByCompany.get(company.name) || []).filter((model) => {
+              const targetTime =
+                overlayMode === "train" ? model.training_start_time : model.release_time;
+              return targetTime >= minTime && targetTime <= geometry.maxVisibleTime;
+            });
+            models.forEach((model) => {
+              const releaseX = clamp(geometry.xForTime(model.release_time), geometry.plotLeft, geometry.plotRight);
+              const trainX = clamp(geometry.xForTime(model.training_start_time), geometry.plotLeft, geometry.plotRight);
+              const releaseY = geometry.yForValue(interpolateValueAtTime(company.points, model.release_time));
+              const trainY = geometry.yForValue(interpolateValueAtTime(company.points, model.training_start_time));
+              const group = makeSvg("g");
+              const title = makeSvg("title");
+              title.textContent = `${model.model_name} | release ${model.release_date} | est. train start ${model.estimated_training_start_date}`;
+              group.appendChild(title);
+
+              if (overlayMode === "train" || overlayMode === "both") {
+                appendTrainingMarker(group, trainX, trainY, company.color);
+              }
+              if (overlayMode === "release" || overlayMode === "both") {
+                appendReleaseMarker(group, releaseX, releaseY, company.color);
+              }
+              rootGroup.appendChild(group);
+            });
+          });
+          return;
+        }
+
+        const rowCount = 3;
+        const rowGap = 18;
+        const companyBandHeight = geometry.modelBandHeight / companies.length;
+
+        companies.forEach((company, companyIndex) => {
+          const models = (modelsByCompany.get(company.name) || []).filter((model) => {
+            const targetTime =
+              overlayMode === "train" ? model.training_start_time : model.release_time;
+            return targetTime >= minTime && targetTime <= geometry.maxVisibleTime;
+          });
+          const laneTop = geometry.margin.top + companyBandHeight * companyIndex;
+          const rows = Array.from({ length: rowCount }, () => ({ end: -Infinity }));
+          const items = models
+            .map((model) => {
+              const releaseX = clamp(geometry.xForTime(model.release_time), geometry.plotLeft, geometry.plotRight);
+              const trainX = clamp(geometry.xForTime(model.training_start_time), geometry.plotLeft, geometry.plotRight);
+              const releaseY = geometry.yForValue(interpolateValueAtTime(company.points, model.release_time));
+              const trainY = geometry.yForValue(interpolateValueAtTime(company.points, model.training_start_time));
+              const chipLabel = model.display_label || model.short_label;
+              const chipWidth = measureChipWidth(chipLabel, geometry.isCompact);
+              const centerX =
+                overlayMode === "both"
+                  ? (releaseX + trainX) / 2
+                  : overlayMode === "train"
+                    ? trainX
+                    : releaseX;
+              const occupiedStart =
+                overlayMode === "both"
+                  ? Math.min(trainX, centerX - chipWidth / 2)
+                  : centerX - chipWidth / 2;
+              const occupiedEnd =
+                overlayMode === "both"
+                  ? Math.max(releaseX, centerX + chipWidth / 2)
+                  : centerX + chipWidth / 2;
+
+              return {
+                ...model,
+                releaseX,
+                releaseY,
+                trainX,
+                trainY,
+                chipWidth,
+                chipLabel,
+                centerX,
+                occupiedStart,
+                occupiedEnd,
+              };
+            })
+            .sort((a, b) => a.occupiedStart - b.occupiedStart);
+
+          items.forEach((item) => {
+            const gap = 8;
+            let rowIndex = rows.findIndex((row) => item.occupiedStart > row.end + gap);
+            if (rowIndex === -1) {
+              rowIndex = rows.reduce((bestIndex, row, index, collection) =>
+                row.end < collection[bestIndex].end ? index : bestIndex,
+              0);
+            }
+            rows[rowIndex].end = item.occupiedEnd;
+            item.rowIndex = rowIndex;
+          });
+
+          items.forEach((item) => {
+            const chipHeight = 16;
+            const chipY = laneTop + 4 + item.rowIndex * rowGap;
+            const chipX = clamp(item.centerX - item.chipWidth / 2, geometry.plotLeft, geometry.plotRight - item.chipWidth);
+            const chipCenterX = chipX + item.chipWidth / 2;
+            const stemBaseY = chipY + chipHeight + 3;
+            const group = makeSvg("g");
+            const title = makeSvg("title");
+            title.textContent = `${item.model_name} | release ${item.release_date} | est. train start ${item.estimated_training_start_date}`;
+            group.appendChild(title);
+
+            if (overlayMode === "both") {
+              group.appendChild(
+                makeSvg("line", {
+                  x1: item.trainX,
+                  x2: item.trainX,
+                  y1: stemBaseY,
+                  y2: item.trainY,
+                  class: "model-stem",
+                  stroke: company.color,
+                  "stroke-dasharray": "4 4",
+                })
+              );
+              group.appendChild(
+                makeSvg("line", {
+                  x1: item.releaseX,
+                  x2: item.releaseX,
+                  y1: stemBaseY,
+                  y2: item.releaseY,
+                  class: "model-stem",
+                  stroke: company.color,
+                })
+              );
+              group.appendChild(
+                makeSvg("line", {
+                  x1: item.trainX,
+                  x2: item.releaseX,
+                  y1: stemBaseY,
+                  y2: stemBaseY,
+                  class: "model-window",
+                  stroke: company.color,
+                  fill: company.color,
+                  "stroke-dasharray": "4 4",
+                })
+              );
+            } else {
+              const eventX = overlayMode === "train" ? item.trainX : item.releaseX;
+              const eventY = overlayMode === "train" ? item.trainY : item.releaseY;
+              group.appendChild(
+                makeSvg("line", {
+                  x1: eventX,
+                  x2: chipCenterX,
+                  y1: eventY,
+                  y2: stemBaseY,
+                  class: "model-stem",
+                  stroke: company.color,
+                  "stroke-dasharray": overlayMode === "train" ? "4 4" : "",
+                })
+              );
+            }
+
+            group.appendChild(
+              makeSvg("rect", {
+                x: chipX,
+                y: chipY,
+                width: item.chipWidth,
+                height: chipHeight,
+                rx: 8,
+                class: "model-chip",
+              })
+            );
+
+            const chipText = makeSvg("text", {
+              x: chipCenterX,
+              y: chipY + 11,
+              "text-anchor": "middle",
+              class: "model-chip-text",
+              fill: company.color,
+            });
+            chipText.textContent = item.chipLabel;
+            group.appendChild(chipText);
+
+            if (overlayMode === "both" || overlayMode === "train") {
+              appendTrainingMarker(group, item.trainX, item.trainY, company.color);
+            }
+            if (overlayMode === "both" || overlayMode === "release") {
+              appendReleaseMarker(group, item.releaseX, item.releaseY, company.color);
+            }
+
+            rootGroup.appendChild(group);
+          });
+        });
+      }
+
+      function render() {
+        const bounds = stage.getBoundingClientRect();
+        const width = Math.max(360, Math.round(bounds.width));
+        const height = Math.max(360, Math.round(bounds.height));
+        const isCompact = width <= 920;
+        const showRightLabels = width >= 980;
+        const lineWidth = isCompact ? 4.2 : 5;
+        const outerDotRadius = isCompact ? 6.4 : 8;
+        const innerDotRadius = isCompact ? 3.8 : 4.5;
+        const visibleMaxTime = rangeMode === "to-date" ? currentCutoffTime : maxTime;
+        const visibleCompanies = companies.map((company) => ({
+          ...company,
+          visiblePoints: company.points.filter((point) => point.time <= visibleMaxTime),
+        }));
+        const visibleMaxTotal = Math.max(
+          ...visibleCompanies.flatMap((company) =>
+            company.visiblePoints.length
+              ? company.visiblePoints.map((point) => point.total_gw)
+              : [0]
+          )
+        );
+        const yStep = visibleMaxTotal <= 2.5 ? 0.25 : visibleMaxTotal <= 5 ? 0.5 : 1;
+        const yMax = Math.ceil((visibleMaxTotal + (rangeMode === "to-date" ? 0.12 : 0.35)) / yStep) * yStep;
+        const yTicks = [];
+        for (let tick = 0; tick <= yMax + 0.0001; tick += yStep) {
+          yTicks.push(Number(tick.toFixed(2)));
+        }
+        const showModelBand = !isCompact && overlayMode !== "off";
+        const modelBandHeight = showModelBand ? 124 : 0;
+        const margin = isCompact
+          ? { top: 52, right: 22, bottom: 54, left: 56 }
+          : { top: showModelBand ? 18 : 54, right: showRightLabels ? 150 : 24, bottom: 58, left: 66 };
+
+        svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+        svg.textContent = "";
+
+        const plotTop = margin.top + modelBandHeight;
+        const plotBottom = height - margin.bottom;
+        const plotLeft = margin.left;
+        const plotRight = width - margin.right;
+        const plotWidth = plotRight - plotLeft;
+        const plotHeight = plotBottom - plotTop;
+        const visibleRange = Math.max(1, visibleMaxTime - minTime);
+        const xForTime = (time) => plotLeft + ((time - minTime) / visibleRange) * plotWidth;
+        const yForValue = (value) => plotBottom - (value / yMax) * plotHeight;
+        const linePath = (points, accessor) =>
+          points
+            .map((point, index) => `${index === 0 ? "M" : "L"}${xForTime(point.time).toFixed(2)},${yForValue(accessor(point)).toFixed(2)}`)
+            .join(" ");
+
+        const geometry = {
+          isCompact,
+          margin,
+          plotTop,
+          plotBottom,
+          plotLeft,
+          plotRight,
+          plotWidth,
+          plotHeight,
+          modelBandHeight,
+          maxVisibleTime: visibleMaxTime,
+          xForTime,
+          yForValue,
+        };
+
+        const rootGroup = makeSvg("g");
+        svg.appendChild(rootGroup);
+
+        for (const tick of yTicks) {
+          const y = yForValue(tick);
+          rootGroup.appendChild(
+            makeSvg("line", {
+              x1: plotLeft,
+              x2: plotRight,
+              y1: y,
+              y2: y,
+              class: tick === 0 ? "axis-line" : "grid-line",
+            })
+          );
+
+          const label = makeSvg("text", {
+            x: plotLeft - 12,
+            y: y + 4,
+            "text-anchor": "end",
+            class: "tick-label",
+          });
+          const tickLabel =
+            yStep < 1
+              ? `${tick.toFixed(2).replace(/\.00$/, "").replace(/0$/, "")}`
+              : `${tick.toFixed(0)}`;
+          label.textContent = `${tickLabel} GW`;
+          rootGroup.appendChild(label);
+        }
+
+        for (const item of quarterPositions) {
+          if (item.time > visibleMaxTime) {
+            continue;
+          }
+          const x = xForTime(item.time);
+          rootGroup.appendChild(
+            makeSvg("line", {
+              x1: x,
+              x2: x,
+              y1: plotTop,
+              y2: plotBottom,
+              class: item.month.endsWith("-01-31") ? "axis-line" : "quarter-line",
+            })
+          );
+        }
+
+        const yearLabelCandidates = [];
+        for (const item of yearPositions) {
+          if (item.time > visibleMaxTime) {
+            continue;
+          }
+          yearLabelCandidates.push({
+            x: xForTime(item.time),
+            text: new Date(`${item.month}T00:00:00Z`).getUTCFullYear().toString(),
+            anchor: "middle",
+            force: false,
+          });
+        }
+
+        if (rangeMode === "to-date") {
+          yearLabelCandidates.push({
+            x: xForTime(visibleMaxTime),
+            text: new Date(visibleMaxTime).getUTCFullYear().toString(),
+            anchor: "end",
+            force: true,
+          });
+        }
+
+        const minYearGap = isCompact ? 56 : 0;
+        const filteredYearLabels = [];
+        yearLabelCandidates.forEach((candidate) => {
+          if (!isCompact) {
+            filteredYearLabels.push(candidate);
+            return;
+          }
+          const previous = filteredYearLabels[filteredYearLabels.length - 1];
+          if (!previous || candidate.x - previous.x >= minYearGap) {
+            filteredYearLabels.push(candidate);
+            return;
+          }
+          if (candidate.force) {
+            filteredYearLabels[filteredYearLabels.length - 1] = candidate;
+          }
+        });
+
+        filteredYearLabels.forEach((candidate) => {
+          const label = makeSvg("text", {
+            x: candidate.x,
+            y: plotBottom + 24,
+            "text-anchor": candidate.anchor,
+            class: "year-label",
+          });
+          label.textContent = candidate.text;
+          rootGroup.appendChild(label);
+        });
+
+        const endLabels = [];
+
+        visibleCompanies.forEach((company) => {
+          const color = company.color;
+          const totalPath = makeSvg("path", {
+            d: linePath(company.visiblePoints, (point) => point.total_gw),
+            class: "total-line",
+            stroke: color,
+            "stroke-width": lineWidth,
+          });
+          rootGroup.appendChild(totalPath);
+
+          company.visiblePoints
+            .filter((point) => point.month_end.endsWith("-12-31"))
+            .forEach((point) => {
+              const x = xForTime(point.time);
+              const y = yForValue(point.total_gw);
+              rootGroup.appendChild(
+                makeSvg("circle", {
+                  cx: x,
+                  cy: y,
+                  r: outerDotRadius,
+                  class: "anchor-ring",
+                  stroke: color,
+                })
+              );
+              rootGroup.appendChild(
+                makeSvg("circle", {
+                  cx: x,
+                  cy: y,
+                  r: innerDotRadius,
+                  class: "anchor-fill",
+                  fill: color,
+                })
+              );
+            });
+
+          const lastPoint = company.visiblePoints[company.visiblePoints.length - 1];
+          endLabels.push({
+            company,
+            color,
+            x: plotRight + 16,
+            y: yForValue(lastPoint.total_gw),
+            text: `${company.name} ${lastPoint.total_gw.toFixed(1)} GW`,
+          });
+        });
+
+        renderModelOverlay(rootGroup, geometry);
+
+        if (showRightLabels) {
+          endLabels.sort((a, b) => a.y - b.y);
+          const minGap = 22;
+          for (let index = 1; index < endLabels.length; index += 1) {
+            if (endLabels[index].y - endLabels[index - 1].y < minGap) {
+              endLabels[index].y = endLabels[index - 1].y + minGap;
+            }
+          }
+          for (let index = endLabels.length - 2; index >= 0; index -= 1) {
+            if (endLabels[index + 1].y > plotBottom - 4) {
+              endLabels[index + 1].y = plotBottom - 4;
+              endLabels[index].y = Math.min(endLabels[index].y, endLabels[index + 1].y - minGap);
+            }
+          }
+
+          endLabels.forEach((item) => {
+            const rightLabel = makeSvg("text", {
+              x: item.x,
+              y: Math.max(plotTop + 14, Math.min(plotBottom - 4, item.y)),
+              class: "right-label",
+              fill: item.color,
+            });
+            rightLabel.textContent = item.text;
+            rootGroup.appendChild(rightLabel);
+          });
+        }
+      }
+
+      let resizeToken = null;
+      const queueRender = () => {
+        if (resizeToken !== null) {
+          cancelAnimationFrame(resizeToken);
+        }
+        resizeToken = requestAnimationFrame(() => {
+          resizeToken = null;
+          render();
+        });
+      };
+
+      new ResizeObserver(queueRender).observe(stage);
+      window.addEventListener("resize", queueRender);
+      setOverlayMode(overlayMode);
+    </script>
+  </body>
+</html>
