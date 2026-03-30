@@ -831,7 +831,7 @@ def html_template(payload: dict[str, object]) -> str:
       .chart-source {
         position: absolute;
         right: 0.92rem;
-        bottom: 0.08rem;
+        bottom: 0.22rem;
         z-index: 1;
         margin: 0;
         max-width: none;
@@ -1826,7 +1826,7 @@ def html_template(payload: dict[str, object]) -> str:
 
         .chart-source {
           right: 0.46rem;
-          bottom: 0.04rem;
+          bottom: 0.12rem;
           max-width: none;
           font-size: 0.38rem;
           line-height: 1;
