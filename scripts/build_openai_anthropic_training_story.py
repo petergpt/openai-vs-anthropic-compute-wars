@@ -643,7 +643,7 @@ def build_story_payload(
 
     return {
         "title": "OpenAI vs Anthropic Compute Wars",
-        "subtitle": "",
+        "subtitle": "Source: Best-effort estimate from Epoch AI Frontier Data Centers and selected public disclosures.",
         "legend": {
             "training": "Estimated training start",
             "release": "Release point",
@@ -816,6 +816,12 @@ def html_template(payload: dict[str, object]) -> str:
         padding: 0.9rem 1.25rem 0.25rem;
       }
 
+      .title-block {
+        display: grid;
+        gap: 0.18rem;
+        min-width: 0;
+      }
+
       h1 {
         margin: 0;
         font-family: var(--display-font);
@@ -826,6 +832,15 @@ def html_template(payload: dict[str, object]) -> str:
         font-weight: var(--title-weight);
         text-transform: var(--title-transform);
         white-space: nowrap;
+      }
+
+      .subtitle {
+        margin: 0;
+        max-width: 54rem;
+        color: var(--muted);
+        font-size: 0.7rem;
+        line-height: 1.2;
+        letter-spacing: 0.015em;
       }
 
       .legend {
@@ -1802,9 +1817,19 @@ def html_template(payload: dict[str, object]) -> str:
           gap: 0.35rem 0.6rem;
         }
 
+        .title-block {
+          gap: 0.14rem;
+        }
+
         h1 {
           font-size: clamp(0.94rem, 3.1vw, 1.18rem);
           letter-spacing: -0.035em;
+        }
+
+        .subtitle {
+          max-width: 32ch;
+          font-size: 0.56rem;
+          line-height: 1.18;
         }
 
         .legend {
@@ -1962,7 +1987,10 @@ def html_template(payload: dict[str, object]) -> str:
     <main class="story">
       <section class="poster">
         <header class="masthead">
-          <h1 id="title"></h1>
+          <div class="title-block">
+            <h1 id="title"></h1>
+            <p class="subtitle" id="subtitle"></p>
+          </div>
           <div class="legend" id="legend"></div>
         </header>
         <div class="tab-strip" role="tablist" aria-label="Page view">
@@ -2047,6 +2075,12 @@ def html_template(payload: dict[str, object]) -> str:
       const dataInspector = document.getElementById("data-inspector");
 
       document.getElementById("title").textContent = DATA.title;
+      const subtitleEl = document.getElementById("subtitle");
+      if (DATA.subtitle) {
+        subtitleEl.textContent = DATA.subtitle;
+      } else {
+        subtitleEl.hidden = true;
+      }
       const DATA_EXPLORER = DATA.data_explorer;
 
       const SPEED_PRESETS = [
