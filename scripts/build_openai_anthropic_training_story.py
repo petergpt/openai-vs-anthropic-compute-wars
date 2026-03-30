@@ -834,14 +834,15 @@ def html_template(payload: dict[str, object]) -> str:
         bottom: 0.08rem;
         z-index: 1;
         margin: 0;
-        max-width: min(30rem, 42%);
+        max-width: none;
         color: var(--muted);
-        font-size: 0.62rem;
+        font-size: 0.58rem;
         line-height: 1.16;
-        letter-spacing: 0.015em;
+        letter-spacing: 0;
         text-align: right;
         pointer-events: none;
         opacity: 0.88;
+        white-space: nowrap;
       }
 
       .legend {
@@ -1826,9 +1827,9 @@ def html_template(payload: dict[str, object]) -> str:
         .chart-source {
           right: 0.46rem;
           bottom: 0.04rem;
-          max-width: 12rem;
-          font-size: 0.5rem;
-          line-height: 1.14;
+          max-width: none;
+          font-size: 0.38rem;
+          line-height: 1;
         }
 
         .legend {
