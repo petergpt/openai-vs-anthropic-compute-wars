@@ -23,11 +23,14 @@ anchor__anthropic__2027_year_end,an_08,future_anchor,Anthropic's own 2027/2028 t
 anchor__anthropic__2027_year_end,an_09,uplift_support,River Bend site lane.
 anchor__anthropic__2027_year_end,an_10,uplift_support,Azure/NVIDIA lane.
 anchor__anthropic__2027_year_end,an_12,orthogonal_check,Independent River Bend corroboration.
+anchor__anthropic__2027_year_end,an_13,platform_anchor,New Google/Broadcom TPU lane starting in 2027.
 anchor__anthropic__2028_year_end_floor,an_08,future_anchor,Anthropic's own 2028 5 GW statement.
+anchor__anthropic__2028_year_end_floor,an_13,platform_anchor,Apr 2026 Google/Broadcom TPU expansion supports 2028 scale.
 anchor__anthropic__2029_year_end_floor,an_08,future_anchor,2028 5 GW anchor carried forward.
 anchor__anthropic__2029_year_end_floor,an_09,uplift_support,River Bend additional ramp.
 anchor__anthropic__2029_year_end_floor,an_10,uplift_support,Azure/NVIDIA lane.
 anchor__anthropic__2029_year_end_floor,an_12,orthogonal_check,Independent River Bend corroboration.
+anchor__anthropic__2029_year_end_floor,an_13,platform_anchor,Apr 2026 Google/Broadcom TPU expansion supports the later Google lane.
 anchor__openai__2023,oa_01,primary_anchor,Official OpenAI company total.
 anchor__openai__2024,oa_01,primary_anchor,Official OpenAI company total.
 anchor__openai__2024,oa_02,site_floor_cross_check,Local site floor shows what the tracker alone would have counted.

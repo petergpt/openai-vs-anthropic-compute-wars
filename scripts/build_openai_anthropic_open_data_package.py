@@ -322,15 +322,18 @@ def anchor_evidence_mapping() -> dict[str, list[tuple[str, str, str]]]:
         anchor_id("Anthropic", "2027_year_end"): [
             ("an_07", "platform_anchor", "Google TPU lane."),
             ("an_08", "future_anchor", "Anthropic's own 2027/2028 training-run power anchor."),
+            ("an_13", "platform_anchor", "New Google/Broadcom TPU lane starting in 2027."),
             ("an_09", "uplift_support", "River Bend site lane."),
             ("an_10", "uplift_support", "Azure/NVIDIA lane."),
             ("an_12", "orthogonal_check", "Independent River Bend corroboration."),
         ],
         anchor_id("Anthropic", "2028_year_end_floor"): [
             ("an_08", "future_anchor", "Anthropic's own 2028 5 GW statement."),
+            ("an_13", "platform_anchor", "Apr 2026 Google/Broadcom TPU expansion supports 2028 scale."),
         ],
         anchor_id("Anthropic", "2029_year_end_floor"): [
             ("an_08", "future_anchor", "2028 5 GW anchor carried forward."),
+            ("an_13", "platform_anchor", "Apr 2026 Google/Broadcom TPU expansion supports the later Google lane."),
             ("an_09", "uplift_support", "River Bend additional ramp."),
             ("an_10", "uplift_support", "Azure/NVIDIA lane."),
             ("an_12", "orthogonal_check", "Independent River Bend corroboration."),

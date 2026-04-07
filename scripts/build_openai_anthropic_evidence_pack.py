@@ -13,9 +13,9 @@ SERIES = [
     {"period": "2025", "openai_gw": "1.9", "anthropic_gw": "1.3", "estimate_type": "official exact / floor-plus-uplift"},
     {"period": "2026 current", "openai_gw": "2.0", "anthropic_gw": "1.6", "estimate_type": "best estimate from layered evidence"},
     {"period": "2026 year-end", "openai_gw": "3.6", "anthropic_gw": "3.3", "estimate_type": "best estimate from layered evidence"},
-    {"period": "2027 year-end", "openai_gw": "6.2", "anthropic_gw": "4.4", "estimate_type": "best estimate from layered evidence"},
-    {"period": "2028 year-end", "openai_gw": "7.2", "anthropic_gw": "5.0", "estimate_type": "conservative forward estimate"},
-    {"period": "2029 year-end", "openai_gw": "9.0", "anthropic_gw": "5.6", "estimate_type": "conservative forward estimate"},
+    {"period": "2027 year-end", "openai_gw": "6.2", "anthropic_gw": "6.0", "estimate_type": "best estimate from layered evidence"},
+    {"period": "2028 year-end", "openai_gw": "7.2", "anthropic_gw": "7.0", "estimate_type": "conservative forward estimate"},
+    {"period": "2029 year-end", "openai_gw": "9.0", "anthropic_gw": "7.6", "estimate_type": "conservative forward estimate"},
 ]
 
 
@@ -410,6 +410,23 @@ EVIDENCE = [
         "overlap_risk": "low",
         "weight": "medium",
         "note": "Independent trade-press corroboration that the River Bend lane is real and non-trivial.",
+    },
+    {
+        "evidence_id": "an_13",
+        "company": "Anthropic",
+        "years_used": "2027-2029",
+        "source_date": "2026-04-06",
+        "title": "Anthropic expands partnership with Google and Broadcom for multiple gigawatts of next-generation compute",
+        "url": "https://www.anthropic.com/news/google-broadcom-partnership-compute",
+        "source_family": "official_company",
+        "independence_class": "primary",
+        "evidence_type": "future_platform_capacity",
+        "quant_signal": "multiple gigawatts of next-generation TPU capacity starting in 2027",
+        "role_in_model": "anchor",
+        "additivity": "additive_candidate",
+        "overlap_risk": "medium",
+        "weight": "critical",
+        "note": "New direct Anthropic evidence that the Google lane expands materially again from 2027 onward; it strengthens the projected ramp more than the March 2026 current point.",
     },
     {
         "evidence_id": "sh_01",

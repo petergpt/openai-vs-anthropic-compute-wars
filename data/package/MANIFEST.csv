@@ -6,8 +6,8 @@ source_inputs/data_center_primary_user_mapping.csv,copied_input,26,Copied source
 source_inputs/data_center_allocations_by_snapshot.csv,copied_input,185,Copied source input or previously generated source table.
 source_inputs/openai_anthropic_monthly_series.csv,copied_input,168,Copied source input or previously generated source table.
 source_inputs/openai_anthropic_publishable_view.csv,copied_input,8,Copied source input or previously generated source table.
-source_inputs/openai_anthropic_evidence_pack.csv,copied_input,24,Copied source input or previously generated source table.
-derived/anchor_evidence_links.csv,derived_csv,62,Derived reconciliation table.
+source_inputs/openai_anthropic_evidence_pack.csv,copied_input,25,Copied source input or previously generated source table.
+derived/anchor_evidence_links.csv,derived_csv,65,Derived reconciliation table.
 derived/assumption_registry.csv,derived_csv,7,Derived reconciliation table.
 derived/chart_points_monthly.csv,derived_csv,168,Derived reconciliation table.
 derived/chart_points_monthly_formula.csv,derived_csv,168,Derived reconciliation table.

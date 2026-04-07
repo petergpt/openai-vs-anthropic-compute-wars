@@ -30,6 +30,13 @@ DATA_EXPLORER_DATASETS = [
         "description": "",
     },
 ]
+PRIOR_ANTHROPIC_POINT_ESTIMATES = {
+    "2026_current": 1.6,
+    "2026_year_end": 3.3,
+    "2027_year_end": 4.4,
+    "2028_year_end_floor": 5.0,
+    "2029_year_end_floor": 5.6,
+}
 
 
 def iso_to_ordinal(value: str) -> int:
@@ -56,6 +63,51 @@ def interpolate_value(points: list[dict[str, object]], target_iso: str) -> float
             return previous_value + (current_value - previous_value) * progress
 
     return float(points[-1]["total_gw"])
+
+
+def build_prior_anthropic_projection(rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    cutoff_date = monthly.DATE_BY_ROW_KEY["2026_current"]
+    anthropic_rows = [
+        row
+        for row in rows
+        if str(row["company"]) == "Anthropic"
+        and date.fromisoformat(str(row["month_end"])) >= cutoff_date
+    ]
+    if not anthropic_rows:
+        return []
+
+    months: list[date] = []
+    floor_by_month: dict[date, float] = {}
+    for row in anthropic_rows:
+        month_end = date.fromisoformat(str(row["month_end"]))
+        months.append(month_end)
+        floor_by_month[month_end] = float(row["floor_gw"])
+
+    anchors = [
+        monthly.Anchor(
+            company="Anthropic",
+            date_value=monthly.DATE_BY_ROW_KEY[row_key],
+            value_gw=value_gw,
+            label=monthly.ANCHOR_LABELS[row_key],
+            estimate_type="prior_projection_reference",
+            note="Prior Anthropic projection before the April 2026 Google/Broadcom TPU update.",
+        )
+        for row_key, value_gw in PRIOR_ANTHROPIC_POINT_ESTIMATES.items()
+    ]
+
+    prior_rows = monthly.pace_company_totals(
+        company="Anthropic",
+        months=months,
+        floor_by_month=floor_by_month,
+        anchors=anchors,
+    )
+    return [
+        {
+            "month_end": str(row["month_end"]),
+            "total_gw": float(row["total_gw"]),
+        }
+        for row in prior_rows
+    ]
 
 
 def trim_company_prefix(model_name: str, company: str) -> str:
@@ -334,11 +386,15 @@ def build_data_explorer_payload() -> dict[str, object]:
                 {"label": evidence.get("title") or link_row["evidence_id"], "href": href}
             )
             local_source = is_local_source_href(href)
+            source_date = str(evidence.get("source_date", "")).strip()
+            is_new_since_cutoff = bool(source_date and source_date > current_month)
             anchor_sources.append(normalized_link)
             anchor_evidence_items.append(
                 {
                     "title": normalized_link["label"],
                     "href": normalized_link["href"],
+                    "source_date": source_date,
+                    "is_new_since_cutoff": is_new_since_cutoff,
                     "source_family": "Epoch AI dataset"
                     if local_source
                     else prettify_token(str(evidence.get("source_family", ""))),
@@ -348,6 +404,13 @@ def build_data_explorer_payload() -> dict[str, object]:
                     "note": str(evidence.get("note", "")).strip() or str(link_row.get("note", "")).strip(),
                 }
             )
+        anchor_evidence_items.sort(
+            key=lambda item: (
+                0 if item.get("is_new_since_cutoff") else 1,
+                -iso_to_ordinal(str(item.get("source_date", "") or "1900-01-01")),
+                str(item.get("title", "")),
+            )
+        )
 
         component_rows = sorted(
             site_floor_by_point.get((company, anchor_date), []),
@@ -429,6 +492,11 @@ def build_data_explorer_payload() -> dict[str, object]:
             "floor_source_links": floor_source_links,
             "uplift_source_links": anchor_source_links,
             "uplift_evidence": anchor_evidence_items,
+            "new_evidence": [
+                item
+                for item in anchor_evidence_items
+                if item.get("is_new_since_cutoff")
+            ],
             "component_count": len(floor_components),
         }
         point_views.append(point_payload)
@@ -585,6 +653,7 @@ def build_story_payload(
     cutoff_date = monthly.DATE_BY_ROW_KEY["2026_current"]
     cutoff_iso = cutoff_date.isoformat()
     projection_end_iso = max(str(row["month_end"]) for row in rows)
+    prior_anthropic_projection = build_prior_anthropic_projection(rows)
 
     by_company: dict[str, list[dict[str, object]]] = {company: [] for company in monthly.COMPANIES}
     for row in rows:
@@ -637,6 +706,9 @@ def build_story_payload(
                 "name": company,
                 "color": monthly.COMPANY_COLORS[company],
                 "points": points,
+                "prior_projection_points": (
+                    prior_anthropic_projection if company == "Anthropic" else []
+                ),
                 "models": company_models,
             }
         )
@@ -644,6 +716,7 @@ def build_story_payload(
     return {
         "title": "OpenAI vs Anthropic Compute Wars",
         "subtitle": "Source: Best-effort estimate from Epoch AI Frontier Data Centers and selected public disclosures.",
+        "updated": f"Updated {date.today().day} {date.today().strftime('%b %Y')}",
         "credit": {
             "prefix": "Made by",
             "name": "Peter Gostev",
@@ -863,6 +936,24 @@ def html_template(payload: dict[str, object]) -> str:
         text-align: left;
         opacity: 0.88;
         white-space: nowrap;
+      }
+
+      .chart-updated {
+        position: absolute;
+        left: 50%;
+        bottom: 0.4rem;
+        transform: translateX(-50%);
+        z-index: 1;
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.52rem;
+        line-height: 1.1;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        text-align: center;
+        opacity: 0.8;
+        white-space: nowrap;
+        pointer-events: none;
       }
 
       .chart-credit a {
@@ -1402,6 +1493,51 @@ def html_template(payload: dict[str, object]) -> str:
         line-height: 1.35;
       }
 
+      .data-update-note {
+        display: grid;
+        gap: 0.28rem;
+        margin-top: 0.02rem;
+        padding-left: 0.02rem;
+      }
+
+      .data-update-top {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.38rem;
+        flex-wrap: wrap;
+      }
+
+      .data-update-badge,
+      .data-inline-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 1.05rem;
+        padding: 0.16rem 0.38rem 0.12rem;
+        border: 1px solid rgba(17, 17, 17, 0.14);
+        border-radius: 999px;
+        background: rgba(17, 17, 17, 0.04);
+        color: rgba(17, 17, 17, 0.72);
+        font-size: 0.58rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        line-height: 1;
+        text-transform: uppercase;
+      }
+
+      .data-update-badge,
+      .data-inline-badge-new {
+        background: rgba(228, 87, 34, 0.11);
+        border-color: rgba(228, 87, 34, 0.22);
+        color: #9f3f1a;
+      }
+
+      .data-update-copy {
+        color: rgba(17, 17, 17, 0.74);
+        font-size: 0.72rem;
+        line-height: 1.4;
+      }
+
       .data-method-note {
         margin-top: 0.08rem;
       }
@@ -1566,6 +1702,14 @@ def html_template(payload: dict[str, object]) -> str:
         line-height: 1.35;
       }
 
+      .data-evidence-right {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.28rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
       .data-item-progress,
       .data-row-bar {
         width: 100%;
@@ -1672,6 +1816,49 @@ def html_template(payload: dict[str, object]) -> str:
         letter-spacing: 0.18em;
       }
 
+      .projection-note-title,
+      .projection-note-text {
+        font-family: var(--body-font);
+        text-anchor: start;
+      }
+
+      .projection-note-title {
+        fill: var(--ink);
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+      }
+
+      .projection-note-text {
+        fill: var(--muted);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+      }
+
+      .projection-note-arrow {
+        fill: none;
+        stroke: rgba(219, 92, 43, 0.92);
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .projection-shift-arrow-back {
+        fill: rgba(255, 252, 247, 0.9);
+      }
+
+      .projection-shift-arrow {
+        fill: rgba(219, 92, 43, 0.94);
+        stroke: rgba(164, 60, 22, 0.38);
+        stroke-width: 1.2;
+        stroke-linejoin: miter;
+      }
+
+      .projection-note-line {
+        fill: none;
+        stroke-linecap: round;
+      }
+
       .grid-line {
         stroke: var(--grid);
         stroke-width: 1;
@@ -1712,6 +1899,7 @@ def html_template(payload: dict[str, object]) -> str:
 
       .reveal-line,
       .reveal-glow,
+      .projected-prior-line,
       .projected-line,
       .projected-glow,
       .window-track,
@@ -1869,6 +2057,12 @@ def html_template(payload: dict[str, object]) -> str:
           bottom: 0.92rem;
           font-size: 0.34rem;
           line-height: 1;
+        }
+
+        .chart-updated {
+          bottom: 0.56rem;
+          font-size: 0.3rem;
+          letter-spacing: 0.05em;
         }
 
         .legend {
@@ -2038,6 +2232,7 @@ def html_template(payload: dict[str, object]) -> str:
           <div class="stage-shell" id="chart-panel">
             <svg id="chart" role="img" aria-label="Animated chart of OpenAI and Anthropic compute buildout with flagship model training windows"></svg>
             <p class="chart-credit" id="credit"><span id="credit-prefix"></span> <a id="credit-link" href="" target="_blank" rel="noreferrer noopener"></a></p>
+            <p class="chart-updated" id="updated"></p>
             <p class="chart-source" id="subtitle"></p>
           </div>
           <section class="data-shell panel-hidden" id="data-panel" aria-label="Underlying chart data explorer">
@@ -2114,6 +2309,7 @@ def html_template(payload: dict[str, object]) -> str:
 
       document.getElementById("title").textContent = DATA.title;
       const subtitleEl = document.getElementById("subtitle");
+      const updatedEl = document.getElementById("updated");
       const creditEl = document.getElementById("credit");
       const creditPrefixEl = document.getElementById("credit-prefix");
       const creditLinkEl = document.getElementById("credit-link");
@@ -2121,6 +2317,11 @@ def html_template(payload: dict[str, object]) -> str:
         subtitleEl.textContent = DATA.subtitle;
       } else {
         subtitleEl.hidden = true;
+      }
+      if (DATA.updated) {
+        updatedEl.textContent = DATA.updated;
+      } else {
+        updatedEl.hidden = true;
       }
       if (DATA.credit && DATA.credit.name && DATA.credit.url) {
         creditPrefixEl.textContent = DATA.credit.prefix || "";
@@ -2398,6 +2599,11 @@ def html_template(payload: dict[str, object]) -> str:
           total_gw: point.total_gw,
           time: Date.parse(`${point.month_end}T00:00:00Z`),
         }));
+        const priorProjectionPoints = (company.prior_projection_points || []).map((point) => ({
+          month_end: point.month_end,
+          total_gw: point.total_gw,
+          time: Date.parse(`${point.month_end}T00:00:00Z`),
+        }));
 
         const models = company.models.map((model, index) => ({
           ...model,
@@ -2413,6 +2619,7 @@ def html_template(payload: dict[str, object]) -> str:
           ...company,
           baseColor: company.color,
           points,
+          priorProjectionPoints,
           models,
           elements: null,
           activeLabel: null,
@@ -2428,6 +2635,10 @@ def html_template(payload: dict[str, object]) -> str:
       const storyStart = Date.parse(`${DATA.story_start_date}T00:00:00Z`);
       const storyEnd = Date.parse(`${DATA.story_end_date}T00:00:00Z`);
       const currentCutoff = Date.parse(`${DATA.current_cutoff_date}T00:00:00Z`);
+      const ANTHROPIC_SHIFT_ARROW_TIME = Math.max(
+        currentCutoff + 210 * DAY_MS,
+        Math.min(storyEnd - 180 * DAY_MS, Date.parse("2028-01-15T00:00:00Z")),
+      );
       const PHASE_ONE_SHARE = 0.76;
       const PHASE_ONE_HOLD_MS = 950;
       const REVEAL_MIN_Y_MAX = 0.22;
@@ -3130,6 +3341,45 @@ def html_template(payload: dict[str, object]) -> str:
         staticGroup.appendChild(currentSectionTitle);
         staticGroup.appendChild(projectedSectionTitle);
 
+        const projectionNoteGroup = makeSvg("g", { opacity: 0 });
+        const projectionNoteTitle = makeSvg("text", {
+          class: "projection-note-title",
+        });
+        projectionNoteTitle.textContent = "ANTHROPIC PROJECTION";
+        const projectionNoteArrow = makeSvg("path", {
+          class: "projection-note-arrow",
+          "stroke-width": isCompact ? 2.9 : 3.5,
+        });
+        const projectionNotePriorLine = makeSvg("line", {
+          class: "projection-note-line",
+          stroke: "#db5c2b",
+          "stroke-width": isCompact ? 2 : 2.2,
+          "stroke-dasharray": isCompact ? "2 6" : "3 7",
+        });
+        const projectionNotePriorText = makeSvg("text", {
+          class: "projection-note-text",
+        });
+        projectionNotePriorText.textContent = "prior";
+        const projectionNoteUpdatedLine = makeSvg("line", {
+          class: "projection-note-line",
+          stroke: "#db5c2b",
+          "stroke-width": isCompact ? 2.4 : 2.8,
+          "stroke-dasharray": isCompact ? "5 7" : "7 8",
+        });
+        const projectionNoteUpdatedText = makeSvg("text", {
+          class: "projection-note-text",
+        });
+        projectionNoteUpdatedText.textContent = isCompact
+          ? "after G-B deal"
+          : "after Google-Broadcom deal";
+        projectionNoteGroup.appendChild(projectionNoteTitle);
+        projectionNoteGroup.appendChild(projectionNoteArrow);
+        projectionNoteGroup.appendChild(projectionNotePriorLine);
+        projectionNoteGroup.appendChild(projectionNotePriorText);
+        projectionNoteGroup.appendChild(projectionNoteUpdatedLine);
+        projectionNoteGroup.appendChild(projectionNoteUpdatedText);
+        staticGroup.appendChild(projectionNoteGroup);
+
         const yAxisElements = Array.from({ length: 6 }, (_, index) => {
           const line = makeSvg("line", { class: index === 0 ? "axis-line" : "grid-line" });
           const label = makeSvg("text", {
@@ -3222,6 +3472,27 @@ def html_template(payload: dict[str, object]) -> str:
             stroke: company.color,
             "stroke-width": isCompact ? 3.6 : 4.2,
           });
+          const projectedPriorLine = company.key === "anthropic"
+            ? makeSvg("path", {
+                class: "projected-prior-line",
+                stroke: company.color,
+                "stroke-width": isCompact ? 2.1 : 2.5,
+                "stroke-dasharray": isCompact ? "2 6" : "3 7",
+                opacity: 0,
+              })
+            : null;
+          const projectionShiftArrowBack = company.key === "anthropic"
+            ? makeSvg("path", {
+                class: "projection-shift-arrow-back",
+                opacity: 0,
+              })
+            : null;
+          const projectionShiftArrow = company.key === "anthropic"
+            ? makeSvg("path", {
+                class: "projection-shift-arrow",
+                opacity: 0,
+              })
+            : null;
           const projectedGlow = makeSvg("path", {
             class: "projected-glow",
             stroke: company.color,
@@ -3251,6 +3522,15 @@ def html_template(payload: dict[str, object]) -> str:
           lineGroup.appendChild(skeletonPath);
           lineGroup.appendChild(revealGlow);
           lineGroup.appendChild(revealLine);
+          if (projectedPriorLine) {
+            lineGroup.appendChild(projectedPriorLine);
+          }
+          if (projectionShiftArrowBack) {
+            lineGroup.appendChild(projectionShiftArrowBack);
+          }
+          if (projectionShiftArrow) {
+            lineGroup.appendChild(projectionShiftArrow);
+          }
           lineGroup.appendChild(projectedGlow);
           lineGroup.appendChild(projectedLine);
           lineGroup.appendChild(headHalo);
@@ -3312,6 +3592,9 @@ def html_template(payload: dict[str, object]) -> str:
             skeletonPath,
             revealGlow,
             revealLine,
+            projectedPriorLine,
+            projectionShiftArrowBack,
+            projectionShiftArrow,
             projectedGlow,
             projectedLine,
             headHalo,
@@ -3346,6 +3629,13 @@ def html_template(payload: dict[str, object]) -> str:
           projectedSectionTitle,
           heroDateMonth,
           heroDateYear,
+          projectionNoteGroup,
+          projectionNoteTitle,
+          projectionNoteArrow,
+          projectionNotePriorLine,
+          projectionNotePriorText,
+          projectionNoteUpdatedLine,
+          projectionNoteUpdatedText,
           playheadLine,
           playheadChipRect,
           playheadChipText,
@@ -3495,6 +3785,66 @@ def html_template(payload: dict[str, object]) -> str:
         scene.projectedSectionTitle.setAttribute("x", projectedSectionX.toFixed(2));
         scene.projectedSectionTitle.setAttribute("y", sectionTitleY.toFixed(2));
         scene.projectedSectionTitle.setAttribute("opacity", projectionActive ? Math.max(0.7, projectionOpacity).toFixed(3) : 0);
+        const anthropicCompany = companies.find((company) => company.key === "anthropic");
+        const anthropicShiftAnchor =
+          projectionVisible &&
+          anthropicCompany?.priorProjectionPoints?.length &&
+          playheadTime >= ANTHROPIC_SHIFT_ARROW_TIME
+            ? (() => {
+                const arrowTime = Math.min(playheadTime - 60 * DAY_MS, ANTHROPIC_SHIFT_ARROW_TIME);
+                const priorArrowPoint = pointAtTime(anthropicCompany.priorProjectionPoints, arrowTime);
+                const updatedArrowPoint = pointAtTime(anthropicCompany.points, arrowTime);
+                const arrowX = frame.xForTime(arrowTime);
+                const updatedArrowY = frame.yForValue(updatedArrowPoint.value) + (scene.isCompact ? 10 : 12);
+                const priorArrowY = frame.yForValue(priorArrowPoint.value) - (scene.isCompact ? 10 : 12);
+                return priorArrowY - updatedArrowY >= (scene.isCompact ? 18 : 24)
+                  ? { arrowX, updatedArrowY, priorArrowY }
+                  : null;
+              })()
+            : null;
+        const noteVisible = projectionVisible && companies.some((company) => company.priorProjectionPoints?.length);
+        let noteX = clamp(
+          cutoffX + (scene.isCompact ? 10 : 18),
+          cutoffX + 10,
+          scene.plotRight - (scene.isCompact ? 118 : 250),
+        );
+        let noteTitleY = scene.plotBottom - (scene.isCompact ? 54 : 58);
+        if (anthropicShiftAnchor && !scene.isCompact) {
+          noteX = clamp(
+            anthropicShiftAnchor.arrowX + 24,
+            cutoffX + 10,
+            scene.plotRight - 252,
+          );
+          noteTitleY = clamp(
+            (anthropicShiftAnchor.updatedArrowY + anthropicShiftAnchor.priorArrowY) / 2 - 22,
+            scene.plotTop + 18,
+            scene.plotBottom - 52,
+          );
+        }
+        const noteUpdatedY = noteTitleY + (scene.isCompact ? 14 : 17);
+        const notePriorY = noteUpdatedY + (scene.isCompact ? 15 : 18);
+        const noteLineStartX = noteX;
+        const noteLineEndX = noteLineStartX + (scene.isCompact ? 18 : 24);
+        const noteTextX = noteLineEndX + (scene.isCompact ? 8 : 10);
+        scene.projectionNoteGroup.setAttribute("opacity", noteVisible ? Math.max(0.68, projectionOpacity).toFixed(3) : 0);
+        scene.projectionNoteTitle.setAttribute("x", noteX.toFixed(2));
+        scene.projectionNoteTitle.setAttribute("y", noteTitleY.toFixed(2));
+        scene.projectionNoteArrow.setAttribute("d", "");
+        scene.projectionNoteArrow.setAttribute("opacity", 0);
+        scene.projectionNotePriorLine.setAttribute("x1", noteLineStartX.toFixed(2));
+        scene.projectionNotePriorLine.setAttribute("x2", noteLineEndX.toFixed(2));
+        scene.projectionNotePriorLine.setAttribute("y1", notePriorY.toFixed(2));
+        scene.projectionNotePriorLine.setAttribute("y2", notePriorY.toFixed(2));
+        scene.projectionNotePriorLine.setAttribute("opacity", "0.38");
+        scene.projectionNotePriorText.setAttribute("x", noteTextX.toFixed(2));
+        scene.projectionNotePriorText.setAttribute("y", (notePriorY + 3).toFixed(2));
+        scene.projectionNoteUpdatedLine.setAttribute("x1", noteLineStartX.toFixed(2));
+        scene.projectionNoteUpdatedLine.setAttribute("x2", noteLineEndX.toFixed(2));
+        scene.projectionNoteUpdatedLine.setAttribute("y1", noteUpdatedY.toFixed(2));
+        scene.projectionNoteUpdatedLine.setAttribute("y2", noteUpdatedY.toFixed(2));
+        scene.projectionNoteUpdatedLine.setAttribute("opacity", "0.86");
+        scene.projectionNoteUpdatedText.setAttribute("x", noteTextX.toFixed(2));
+        scene.projectionNoteUpdatedText.setAttribute("y", (noteUpdatedY + 3).toFixed(2));
         scene.playheadLine.setAttribute("x1", playheadX.toFixed(2));
         scene.playheadLine.setAttribute("x2", playheadX.toFixed(2));
         scene.playheadChipRect.setAttribute("x", (playheadX - 34).toFixed(2));
@@ -3517,6 +3867,10 @@ def html_template(payload: dict[str, object]) -> str:
           const revealPoints = trimLeadingFlatPoints(sliceSeries(company.points, companyDisplayStart, historicalRevealEnd));
           const revealPath = pathFromPoints(revealPoints, frame);
           const projectedVisible = playheadTime > currentCutoff + DAY_MS;
+          const priorProjectedPoints = projectedVisible && company.priorProjectionPoints?.length
+            ? sliceSeries(company.priorProjectionPoints, currentCutoff, playheadTime)
+            : [];
+          const priorProjectedPath = priorProjectedPoints.length > 1 ? pathFromPoints(priorProjectedPoints, frame) : "";
           const projectedPoints = projectedVisible
             ? sliceSeries(company.points, currentCutoff, playheadTime)
             : [];
@@ -3527,6 +3881,75 @@ def html_template(payload: dict[str, object]) -> str:
           company.elements.skeletonPath.setAttribute("d", skeletonPath);
           company.elements.revealGlow.setAttribute("d", revealPath);
           company.elements.revealLine.setAttribute("d", revealPath);
+          if (company.elements.projectedPriorLine) {
+            company.elements.projectedPriorLine.setAttribute("d", priorProjectedPath);
+            company.elements.projectedPriorLine.setAttribute(
+              "opacity",
+              projectedVisible && priorProjectedPoints.length > 1
+                ? (0.24 + frame.projectionProgress * 0.12).toFixed(3)
+                : 0,
+            );
+          }
+          if (company.elements.projectionShiftArrow) {
+            const arrowReady =
+              projectedVisible &&
+              playheadTime >= ANTHROPIC_SHIFT_ARROW_TIME &&
+              company.priorProjectionPoints?.length;
+            if (arrowReady) {
+              const arrowTime = Math.min(playheadTime - 60 * DAY_MS, ANTHROPIC_SHIFT_ARROW_TIME);
+              const priorArrowPoint = pointAtTime(company.priorProjectionPoints, arrowTime);
+              const updatedArrowPoint = pointAtTime(company.points, arrowTime);
+              const arrowX = frame.xForTime(arrowTime);
+              const updatedArrowY = frame.yForValue(updatedArrowPoint.value) + (scene.isCompact ? 10 : 12);
+              const priorArrowY = frame.yForValue(priorArrowPoint.value) - (scene.isCompact ? 10 : 12);
+              const arrowHeight = priorArrowY - updatedArrowY;
+              if (arrowHeight >= (scene.isCompact ? 18 : 24)) {
+                const shaftHalf = scene.isCompact ? 3.2 : 3.9;
+                const headHalf = scene.isCompact ? 8.4 : 10.5;
+                const headHeight = scene.isCompact ? 9.2 : 11.4;
+                const arrowTopY = updatedArrowY;
+                const arrowBottomY = priorArrowY;
+                const shoulderY = arrowTopY + headHeight;
+                const arrowPath =
+                  `M ${(arrowX - shaftHalf).toFixed(2)} ${arrowBottomY.toFixed(2)} ` +
+                  `L ${(arrowX + shaftHalf).toFixed(2)} ${arrowBottomY.toFixed(2)} ` +
+                  `L ${(arrowX + shaftHalf).toFixed(2)} ${shoulderY.toFixed(2)} ` +
+                  `L ${(arrowX + headHalf).toFixed(2)} ${shoulderY.toFixed(2)} ` +
+                  `L ${arrowX.toFixed(2)} ${arrowTopY.toFixed(2)} ` +
+                  `L ${(arrowX - headHalf).toFixed(2)} ${shoulderY.toFixed(2)} ` +
+                  `L ${(arrowX - shaftHalf).toFixed(2)} ${shoulderY.toFixed(2)} Z`;
+                const backShaftHalf = shaftHalf + (scene.isCompact ? 1.4 : 1.8);
+                const backHeadHalf = headHalf + (scene.isCompact ? 2.2 : 2.6);
+                const backTopY = arrowTopY - (scene.isCompact ? 1.6 : 2);
+                const backBottomY = arrowBottomY + (scene.isCompact ? 1.6 : 2);
+                const backShoulderY = shoulderY + (scene.isCompact ? 1.1 : 1.4);
+                const backPath =
+                  `M ${(arrowX - backShaftHalf).toFixed(2)} ${backBottomY.toFixed(2)} ` +
+                  `L ${(arrowX + backShaftHalf).toFixed(2)} ${backBottomY.toFixed(2)} ` +
+                  `L ${(arrowX + backShaftHalf).toFixed(2)} ${backShoulderY.toFixed(2)} ` +
+                  `L ${(arrowX + backHeadHalf).toFixed(2)} ${backShoulderY.toFixed(2)} ` +
+                  `L ${arrowX.toFixed(2)} ${backTopY.toFixed(2)} ` +
+                  `L ${(arrowX - backHeadHalf).toFixed(2)} ${backShoulderY.toFixed(2)} ` +
+                  `L ${(arrowX - backShaftHalf).toFixed(2)} ${backShoulderY.toFixed(2)} Z`;
+                company.elements.projectionShiftArrowBack.setAttribute("d", backPath);
+                company.elements.projectionShiftArrowBack.setAttribute(
+                  "opacity",
+                  (0.82 + frame.projectionProgress * 0.1).toFixed(3),
+                );
+                company.elements.projectionShiftArrow.setAttribute("d", arrowPath);
+                company.elements.projectionShiftArrow.setAttribute(
+                  "opacity",
+                  (0.86 + frame.projectionProgress * 0.1).toFixed(3),
+                );
+              } else {
+                company.elements.projectionShiftArrowBack.setAttribute("opacity", 0);
+                company.elements.projectionShiftArrow.setAttribute("opacity", 0);
+              }
+            } else {
+              company.elements.projectionShiftArrowBack.setAttribute("opacity", 0);
+              company.elements.projectionShiftArrow.setAttribute("opacity", 0);
+            }
+          }
           company.elements.projectedGlow.setAttribute("d", projectedPath);
           company.elements.projectedLine.setAttribute("d", projectedPath);
           company.elements.revealGlow.setAttribute("opacity", revealPoints.length > 1 ? revealGlowOpacity.toFixed(3) : 0);
@@ -3915,6 +4338,10 @@ def html_template(payload: dict[str, object]) -> str:
         return point.period.replace(year, "").replace(/\\s+/g, " ").trim() || "Year-end";
       }
 
+      function conciseEvidenceSignal(item) {
+        return item.quant_signal || item.note || item.title;
+      }
+
       function createSummaryCard(point) {
         const summary = document.createElement("section");
         summary.className = "data-summary-card";
@@ -3964,6 +4391,24 @@ def html_template(payload: dict[str, object]) -> str:
             : point.point_choice) +
           ` · ${pluralize(point.component_count, "named site")}`;
         summary.appendChild(note);
+
+        if (point.new_evidence?.length) {
+          const fresh = point.new_evidence[0];
+          const update = document.createElement("div");
+          update.className = "data-update-note";
+          const topLine = document.createElement("div");
+          topLine.className = "data-update-top";
+          const badge = document.createElement("span");
+          badge.className = "data-update-badge";
+          badge.textContent = `New ${formatDate(Date.parse(`${fresh.source_date}T00:00:00Z`))}`;
+          topLine.appendChild(badge);
+          update.appendChild(topLine);
+          const copy = document.createElement("div");
+          copy.className = "data-update-copy";
+          copy.textContent = conciseEvidenceSignal(fresh);
+          update.appendChild(copy);
+          summary.appendChild(update);
+        }
 
         const method = document.createElement("details");
         method.className = "data-method-note";
@@ -4104,6 +4549,21 @@ def html_template(payload: dict[str, object]) -> str:
         title.className = "data-evidence-title";
         title.textContent = item.title;
         top.appendChild(title);
+        if (item.is_new_since_cutoff) {
+          const right = document.createElement("div");
+          right.className = "data-evidence-right";
+          const newBadge = document.createElement("span");
+          newBadge.className = "data-inline-badge data-inline-badge-new";
+          newBadge.textContent = "New";
+          right.appendChild(newBadge);
+          if (item.source_date) {
+            const dateBadge = document.createElement("span");
+            dateBadge.className = "data-inline-badge";
+            dateBadge.textContent = formatDate(Date.parse(`${item.source_date}T00:00:00Z`));
+            right.appendChild(dateBadge);
+          }
+          top.appendChild(right);
+        }
         main.appendChild(top);
 
         const meta = document.createElement("div");
@@ -4192,7 +4652,14 @@ def html_template(payload: dict[str, object]) -> str:
         evidenceSummary.textContent = "Other compute evidence";
         const evidenceMeta = document.createElement("span");
         evidenceMeta.className = "data-fold-meta";
-        evidenceMeta.textContent = ` · ${pluralize(point.uplift_evidence.length, "source")} · ${formatDetailedGw(point.uplift_gw)}`;
+        const evidenceMetaBits = [
+          pluralize(point.uplift_evidence.length, "source"),
+          formatDetailedGw(point.uplift_gw),
+        ];
+        if (point.new_evidence?.length) {
+          evidenceMetaBits.push(`${pluralize(point.new_evidence.length, "new item", "new items")}`);
+        }
+        evidenceMeta.textContent = ` · ${evidenceMetaBits.join(" · ")}`;
         evidenceSummary.appendChild(evidenceMeta);
         evidenceFold.appendChild(evidenceSummary);
 

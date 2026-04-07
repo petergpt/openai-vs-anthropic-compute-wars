@@ -136,15 +136,15 @@ def build_rows(floor: dict[tuple[str, str], float]) -> list[dict[str, str]]:
             "openai_high": "8.00",
             "openai_type": "triangulated_range_with_floor_low",
             "openai_site_floor": fmt(floor[("OpenAI", "year_end_2027")]),
-            "anthropic_point_estimate": "4.4",
+            "anthropic_point_estimate": "6.0",
             "anthropic_low": "3.80",
-            "anthropic_base": "4.70",
-            "anthropic_high": "5.80",
+            "anthropic_base": "6.30",
+            "anthropic_high": "7.00",
             "anthropic_type": "triangulated_range_with_floor_low",
             "anthropic_site_floor": fmt(floor[("Anthropic", "year_end_2027")]),
             "point_estimate_type": "future_single_estimate_from_debated_range",
             "summary_note": (
-                "Year-end 2027 ranges again start from the lower-bound floor. OpenAI remains sensitive to the full Wisconsin attribution; Anthropic remains a floor-plus-Google-platform estimate."
+                "Year-end 2027 ranges again start from the lower-bound floor. OpenAI remains sensitive to the full Wisconsin attribution; Anthropic now steps materially higher because the April 6 2026 Google/Broadcom announcement points to a much larger Google TPU lane starting in 2027."
             ),
         },
         {
@@ -156,7 +156,7 @@ def build_rows(floor: dict[tuple[str, str], float]) -> list[dict[str, str]]:
             "openai_high": "",
             "openai_type": "heuristic_site_backed_lower_bound_only",
             "openai_site_floor": fmt(floor[("OpenAI", "year_end_2028")]),
-            "anthropic_point_estimate": "5.0",
+            "anthropic_point_estimate": "7.0",
             "anthropic_low": "",
             "anthropic_base": "",
             "anthropic_high": "",
@@ -164,7 +164,7 @@ def build_rows(floor: dict[tuple[str, str], float]) -> list[dict[str, str]]:
             "anthropic_site_floor": fmt(floor[("Anthropic", "year_end_2028")]),
             "point_estimate_type": "conservative_forward_estimate_beyond_high_confidence_window",
             "summary_note": (
-                "Beyond 2027, the public floor stays incomplete. OpenAI remains a conservative rounded floor proxy, while Anthropic uses Anthropic's own 2028 5 GW training-run projection as the best late-year anchor."
+                "Beyond 2027, the public floor stays incomplete. OpenAI remains a conservative rounded floor proxy, while Anthropic now sits well above its own 2028 5 GW training-run anchor because the April 2026 Google/Broadcom update implies a larger continuing Google lane."
             ),
         },
         {
@@ -176,7 +176,7 @@ def build_rows(floor: dict[tuple[str, str], float]) -> list[dict[str, str]]:
             "openai_high": "",
             "openai_type": "heuristic_site_backed_lower_bound_only",
             "openai_site_floor": fmt(floor[("OpenAI", "year_end_2029")]),
-            "anthropic_point_estimate": "5.6",
+            "anthropic_point_estimate": "7.6",
             "anthropic_low": "",
             "anthropic_base": "",
             "anthropic_high": "",
@@ -184,7 +184,7 @@ def build_rows(floor: dict[tuple[str, str], float]) -> list[dict[str, str]]:
             "anthropic_site_floor": fmt(floor[("Anthropic", "year_end_2029")]),
             "point_estimate_type": "conservative_forward_estimate_beyond_high_confidence_window",
             "summary_note": (
-                "2029 remains overlap-heavy, but a decline would be nonsensical given the 2028 anchor and continued River Bend, Google, and Microsoft-linked ramps. Anthropic therefore steps up modestly above the 2028 anchor."
+                "2029 remains overlap-heavy, but a decline would be nonsensical given the higher 2028 anchor and continued River Bend, Google, and Microsoft-linked ramps. Anthropic therefore steps up again above the revised 2028 anchor."
             ),
         },
     ]
@@ -231,9 +231,9 @@ def build_md(rows: list[dict[str, str]]) -> str:
 | 2025 | `1.9 GW` | `1.3 GW` | OpenAI is the official company total. Anthropic is best read as modestly above the `1.092 GW` visible floor, not equal to the full later platform headlines. |
 | 2026 current | `2.0 GW` | `1.6 GW` | Keeps OpenAI anchored to the official `~1.9 GW` 2025 company total, while allowing only modest uplift for Anthropic beyond its live AWS-heavy floor. |
 | 2026 year-end | `3.6 GW` | `3.3 GW` | Counts some end-2026 ramp from explicit provider commitments, but not the full nominal value of AWS, Google, Nvidia, Azure, or other umbrella announcements. |
-| 2027 year-end | `6.2 GW` | `4.4 GW` | Leaves OpenAI close to the floor because Wisconsin attribution is still the main swing factor; leaves Anthropic above the floor because Google plus River Bend likely contribute, but not at full announced scale. |
-| 2028 year-end | `7.2 GW` | `5.0 GW` | OpenAI stays a conservative rounded floor proxy. Anthropic uses its own 2028 `5 GW` training-run projection as the strongest late-year anchor. |
-| 2029 year-end | `9.0 GW` | `5.6 GW` | OpenAI still rounds the site-backed lower bound. Anthropic carries the 2028 anchor forward with a modest additional ramp rather than implying a decline. |
+| 2027 year-end | `6.2 GW` | `6.0 GW` | Leaves OpenAI close to the floor because Wisconsin attribution is still the main swing factor; lifts Anthropic materially because the April 2026 Google/Broadcom expansion points to a much larger Google TPU lane starting in 2027. |
+| 2028 year-end | `7.2 GW` | `7.0 GW` | OpenAI stays a conservative rounded floor proxy. Anthropic now sits well above its own 2028 `5 GW` training-run anchor because the April 2026 Google/Broadcom update implies a larger continuing Google lane. |
+| 2029 year-end | `9.0 GW` | `7.6 GW` | OpenAI still rounds the site-backed lower bound. Anthropic carries the higher 2028 anchor forward with another step-up rather than flattening after the new Google/Broadcom signal. |
 
 Preferred Anthropic midpoints for internal use only:
 - `2023`: about `0.08 GW`
@@ -241,7 +241,7 @@ Preferred Anthropic midpoints for internal use only:
 - `2025`: about `1.30 GW`
 - `2026 current`: about `1.80 GW`
 - `2026 year-end`: about `3.60 GW`
-- `2027 year-end`: about `4.70 GW`
+- `2027 year-end`: about `6.30 GW`
 
 Preferred OpenAI midpoints for internal use only:
 - `2026 current`: about `2.10 GW`
@@ -255,7 +255,7 @@ Preferred OpenAI midpoints for internal use only:
 - Public sourcing still proves Anthropic had nonzero compute access by then through Google and AWS.
 - OpenAI also looked understated in the earlier floor because the company later disclosed a cleaner `0.2 / 0.6 / 1.9 GW` historical series.
 - For 2026-2027, the floor remains the anchor, but I now add only conservative uplift that can be defended without stacking umbrella claims.
-- For 2026-2027 point estimates, I lean toward live and near-live capacity rather than headline commitments. That is why Anthropic stays below the earlier midpoint-heavy view and OpenAI stays close to the floor in 2027.
+- For 2026-2027 point estimates, I still lean toward live and near-live capacity rather than headline commitments, but the April 2026 Google/Broadcom update pushes Anthropic's later Google lane far above the earlier conservative call.
 
 ## Key Source Logic
 
